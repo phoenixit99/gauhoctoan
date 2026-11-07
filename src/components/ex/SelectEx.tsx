@@ -6,6 +6,7 @@ import { speak } from "@/lib/speech";
 import { spellSyl } from "@/content/tv/words";
 import { sfx } from "@/lib/sfx";
 import { playWalk, usePrompt, type ExProps } from "./common";
+import { Emo } from "./Emo";
 
 /** Chọn tất cả: tap every card that fits (tap again to undo), then "Xong". Tapping a picture says its name. */
 export function SelectEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<SelectQ>) {
@@ -21,7 +22,9 @@ export function SelectEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Se
     (async () => {
       await prompt.current;
       if (hint === 2) {
-        if (q.cards.some((c) => c.emoji)) {
+        if (q.hint2) {
+          await speak(q.hint2);
+        } else if (q.cards.some((c) => c.emoji)) {
           setLabels(true);
           await speak("Gấu viết tên dưới mỗi hình rồi. Con đọc từng tên nhé.");
         } else {
@@ -54,7 +57,7 @@ export function SelectEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Se
     if (locked || hint === 3) return;
     sfx.tap();
     setChosen((c) => (c.includes(i) ? c.filter((x) => x !== i) : [...c, i]));
-    if (q.cards[i].emoji) void speak(q.cards[i].say);
+    if (q.cards[i].emoji && !q.quiet) void speak(q.cards[i].say);
   };
 
   const check = () => {
@@ -83,8 +86,14 @@ export function SelectEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Se
                 on ? "border-green-600 bg-green-100 ring-8 ring-green-300" : focus === i ? "border-orange-400 bg-orange-50 ring-8 ring-orange-300" : "border-sky-300 bg-white"
               }`}
             >
-              {c.emoji && <span className="text-7xl leading-none">{c.emoji}</span>}
-              {(!c.emoji || labels) && <span className={`font-extrabold text-sky-900 ${c.emoji ? "mt-1 text-3xl" : "text-6xl"}`}>{c.text}</span>}
+              {c.emoji && (
+                <span className="text-7xl leading-none">
+                  <Emo e={c.emoji} />
+                </span>
+              )}
+              {c.text && (!c.emoji || labels) && (
+                <span className={`font-extrabold text-sky-900 ${c.emoji ? "mt-1 text-3xl" : c.text.length > 6 ? "text-4xl" : "text-6xl"}`}>{c.text}</span>
+              )}
               {on && <span className="absolute -right-2 -top-3 text-4xl">✅</span>}
             </button>
           );

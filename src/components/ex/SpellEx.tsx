@@ -4,19 +4,25 @@ import { motion } from "framer-motion";
 import type { SpellQ } from "@/content/types";
 import { speak } from "@/lib/speech";
 import { sfx } from "@/lib/sfx";
-import { spellSyl, tileTone, withTone } from "@/content/tv/words";
+import { spellSyl } from "@/content/tv/words";
 import { playWalk, usePrompt, type ExProps } from "./common";
 
-/** Picked tiles so far: picks[s][k] = tile index for syllable s, slot k (0 âm đầu · 1 âm thứ hai · 2 dấu). */
+/** Picked tiles so far: picks[s][k] = tile index for syllable s, slot k (âm đầu · âm thứ hai / vần · dấu; no âm đầu slot when the tiếng has none). */
 type Picks = number[][];
 
-/** What the child has built so far for one syllable, e.g. "b_" → "bê" → "bế". */
+/**
+ * What the child has built so far for one syllable, e.g. "b_" → "bê" → "bế".
+ * Only right tiles are accepted, so once every slot is filled the tiếng is the real one (tone mark in the right place).
+ */
 function built(q: SpellQ, s: number, picks: number[]): string {
-  const [on, vo, to] = q.syllables[s].slots;
-  const onset = picks[0] !== undefined ? on.tiles[picks[0]] : "_";
-  if (picks[1] === undefined) return onset + "_";
-  const vowel = vo.tiles[picks[1]];
-  return onset + (picks[2] !== undefined ? withTone(vowel, tileTone(to.tiles[picks[2]])) : vowel);
+  const sy = q.syllables[s];
+  if (picks.length >= sy.slots.length) return sy.text;
+  let out = "";
+  sy.slots.forEach((slot, k) => {
+    if (slot.role === "tone") return;
+    out += picks[k] !== undefined ? slot.tiles[picks[k]] : "_";
+  });
+  return out;
 }
 
 /** Ghép tiếng: for each tiếng, choose âm đầu → âm thứ hai → dấu, in that fixed order. */
@@ -31,7 +37,7 @@ export function SpellEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Spe
 
   // Where we are: first syllable that is not complete, and its next slot.
   const pos = (p: Picks) => {
-    const s = p.findIndex((x) => x.length < 3);
+    const s = p.findIndex((x, i) => x.length < q.syllables[i].slots.length);
     return s < 0 ? null : { s, k: p[s].length };
   };
   const at = pos(picks);
@@ -104,7 +110,7 @@ export function SpellEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Spe
           <div
             key={s}
             className={`grid min-h-24 min-w-28 place-items-center rounded-3xl border-4 px-4 text-6xl font-extrabold ${
-              at?.s === s ? "border-orange-400 bg-orange-50" : picks[s].length === 3 ? "border-green-500 bg-green-50 text-green-800" : "border-dashed border-slate-300 bg-white/70"
+              at?.s === s ? "border-orange-400 bg-orange-50" : picks[s].length >= sy.slots.length ? "border-green-500 bg-green-50 text-green-800" : "border-dashed border-slate-300 bg-white/70"
             }`}
           >
             {built(q, s, picks[s])}

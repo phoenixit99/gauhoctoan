@@ -11,7 +11,7 @@ import { useSettings } from "@/lib/settings";
 import { usePause } from "@/lib/pause";
 import { isTimeUp } from "@/lib/session";
 import { KID } from "@/lib/kid";
-import { methodFor } from "@/content/methods";
+import { methodFor, methodKey } from "@/content/methods";
 import { setMethodStep } from "@/lib/method";
 import { MethodBar } from "../MethodBar";
 import type { ExProps, Hint } from "./common";
@@ -26,6 +26,7 @@ import { SelectEx } from "./SelectEx";
 import { PairEx } from "./PairEx";
 import { SpellEx } from "./SpellEx";
 import { TraceEx } from "./TraceEx";
+import { OrderEx } from "./OrderEx";
 
 /** Picks the renderer for a question. */
 export function Exercise(p: ExProps) {
@@ -52,6 +53,8 @@ export function Exercise(p: ExProps) {
       return <SpellEx {...(p as ExProps<typeof p.q>)} />;
     case "trace":
       return <TraceEx {...(p as ExProps<typeof p.q>)} />;
+    case "order":
+      return <OrderEx {...(p as ExProps<typeof p.q>)} />;
   }
 }
 
@@ -111,13 +114,14 @@ export function Runner({
   const help = useRef(0);
   const spec = specs[Math.min(si, specs.length - 1)];
   const method = methodFor(spec);
+  const key = methodKey(spec); // progress is kept per method (kind + variant)
   const revealAt = q.type === "trace" ? 3 : 2; // tracing strays are not real mistakes, allow more
 
   // Start of each question: no step lit, then the help this kind still needs.
   useEffect(() => {
     setMethodStep(-1);
     wrongs.current = 0;
-    const level: Support = extra ? 2 : (useProgress.getState().support[spec.kind] ?? 2);
+    const level: Support = extra ? 2 : (useProgress.getState().support[key] ?? 2);
     help.current = method ? level : 0;
     if (!method || level === 0) return;
     let alive = true;
@@ -181,10 +185,10 @@ export function Runner({
   /** Records the finished question and fades (or raises) the help for this kind. */
   const record = () => {
     if (extra) return;
-    logAttempt({ item: itemId, kind: spec.kind, wrongs: wrongs.current, help: help.current });
-    const cur = useProgress.getState().support[spec.kind] ?? 2;
+    logAttempt({ item: itemId, kind: key, wrongs: wrongs.current, help: help.current });
+    const cur = useProgress.getState().support[key] ?? 2;
     const next = (wrongs.current > 0 ? Math.min(2, cur + 1) : Math.max(0, cur - 1)) as Support;
-    setSupport(spec.kind, next);
+    setSupport(key, next);
   };
 
   const onAnswer = async (correct: boolean, customHint?: string, reveal?: boolean) => {
@@ -201,7 +205,7 @@ export function Runner({
       return;
     }
     sfx.soft();
-    if (wrongs.current === 0 && !extra) logMistake({ item: itemId, kind: spec.kind });
+    if (wrongs.current === 0 && !extra) logMistake({ item: itemId, kind: key });
     wrongs.current++;
     const next = (reveal || wrongs.current >= revealAt ? 3 : Math.max(hint, Math.min(2, wrongs.current))) as Hint;
     if (next === 3) {

@@ -5,6 +5,7 @@ import type { Group, Picture, Question, WalkStep } from "@/content/types";
 import { speak } from "@/lib/speech";
 import { setMethodStep } from "@/lib/method";
 import { wait } from "@/lib/vn";
+import { Emo } from "./Emo";
 
 export type Hint = 0 | 1 | 2 | 3; // 0 none · 1 voice nudge · 2 help counting · 3 show answer
 
@@ -33,7 +34,7 @@ export function Badge({ n }: { n: number }) {
   );
 }
 
-function Item({ emoji, badge, size, delay }: { emoji: string; badge?: number; size: string; delay: number }) {
+function Item({ emoji, badge, size, delay, gone }: { emoji: string; badge?: number; size: string; delay: number; gone?: boolean }) {
   return (
     <motion.span
       initial={{ scale: 0 }}
@@ -41,25 +42,150 @@ function Item({ emoji, badge, size, delay }: { emoji: string; badge?: number; si
       transition={{ type: "spring", bounce: 0.5, delay }}
       className={`relative inline-grid w-[1.25em] place-items-center leading-none ${size}`}
     >
-      {emoji}
+      <span className={gone ? "opacity-50" : ""}>
+        <Emo e={emoji} />
+      </span>
+      {gone && (
+        <span className="absolute inset-0 grid place-items-center text-[0.9em] font-black text-slate-600/80" aria-label="gạch bớt">
+          ✗
+        </span>
+      )}
       {badge !== undefined && <Badge n={badge} />}
     </motion.span>
   );
 }
 
-/** A group of identical items in rows of 5 (like a ten-frame), with optional count badges. */
-export function GroupView({ g, counted = 0, size = "text-5xl" }: { g: Group; counted?: number; size?: string }) {
+/** A group of identical items in rows of 5 (like a ten-frame), with optional count badges. `crossed`: show the `gone` items crossed out. */
+export function GroupView({ g, counted = 0, size = "text-5xl", crossed = true }: { g: Group; counted?: number; size?: string; crossed?: boolean }) {
+  const gone = crossed ? (g.gone ?? 0) : 0;
   return (
     <div className="flex max-w-[20em] flex-wrap justify-center gap-x-2 gap-y-3" style={{ fontSize: "inherit" }}>
       {Array.from({ length: g.n }, (_, i) => (
-        <Item key={i} emoji={g.emoji} size={size} badge={i < counted ? i + 1 : undefined} delay={counted ? 0 : i * 0.04} />
+        <Item key={i} emoji={g.emoji} size={size} badge={i < counted ? i + 1 : undefined} delay={counted ? 0 : i * 0.04} gone={i >= g.n - gone} />
       ))}
     </div>
   );
 }
 
-/** counted[i] = how many items of group i show a number badge. */
-export function PictureView({ p, counted, fill }: { p: Picture; counted: number[]; fill?: string }) {
+/** A number, a sign or a blank in an equation line. */
+function EqPart({ part, fill }: { part: string | number; fill?: string }) {
+  if (part === "☐")
+    return (
+      <span
+        className={`grid h-20 min-w-20 place-items-center rounded-2xl px-2 ${
+          fill !== undefined ? "border-4 border-green-500 bg-green-100 text-green-700" : "border-4 border-dashed border-orange-400 bg-orange-50 text-orange-400"
+        }`}
+      >
+        {fill ?? "?"}
+      </span>
+    );
+  return <span className="px-1">{part}</span>;
+}
+
+/** Boxes of pictures (one per group) shown above an equation or a bond. Hidden groups appear once counted. */
+function GroupBoxes({ groups, counted, hidden, crossed }: { groups: Group[]; counted: number[]; hidden?: boolean; crossed: boolean }) {
+  const visible = groups.map((_, gi) => !hidden || counted[gi] !== undefined);
+  if (!visible.some(Boolean)) return null;
+  return (
+    <div className="flex flex-wrap items-stretch justify-center gap-3">
+      {groups.map((g, gi) =>
+        visible[gi] ? (
+          <div key={gi} className="grid min-w-32 place-items-center rounded-3xl border-4 border-dashed border-sky-300 bg-white/90 p-3 shadow-md">
+            <GroupView g={g} counted={counted[gi] ?? 0} size="text-4xl" crossed={crossed} />
+          </div>
+        ) : null,
+      )}
+    </div>
+  );
+}
+
+/**
+ * counted[i] = how many items of group i show a number badge. `fill` = text for the blank once answered.
+ * `revealed` = the answer is shown (for pictures whose answer is not text). `crossed` = crossed-out items are shown.
+ */
+export function PictureView({ p, counted, fill, revealed, crossed = true }: { p: Picture; counted: number[]; fill?: string; revealed?: boolean; crossed?: boolean }) {
+  if (p.kind === "eq") {
+    return (
+      <div className="flex flex-col items-center gap-5">
+        {p.groups && <GroupBoxes groups={p.groups} counted={counted} hidden={p.hidden} crossed={crossed} />}
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-3xl bg-white px-6 py-3 text-6xl font-extrabold shadow-lg">
+          {p.parts.map((part, i) => (
+            <EqPart key={i} part={part} fill={fill} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (p.kind === "bond") {
+    const node = (v: number | "☐", big?: boolean) => (
+      <div
+        className={`grid place-items-center rounded-full font-extrabold shadow-lg ${big ? "h-24 w-24 text-5xl" : "h-20 w-20 text-4xl"} ${
+          v === "☐" ? (fill !== undefined ? "border-4 border-green-500 bg-green-100 text-green-700" : "border-4 border-dashed border-orange-400 bg-orange-50 text-orange-400") : big ? "bg-amber-100" : "bg-white"
+        }`}
+      >
+        {v === "☐" ? (fill ?? "?") : v}
+      </div>
+    );
+    return (
+      <div className="flex flex-col items-center gap-4">
+        {p.groups && <GroupBoxes groups={p.groups} counted={counted} hidden={p.hidden} crossed={crossed} />}
+        <div className="flex flex-col items-center">
+          {node(p.whole, true)}
+          <svg width="200" height="44" viewBox="0 0 200 44" aria-hidden>
+            <line x1="100" y1="2" x2="40" y2="42" stroke="#5d4037" strokeWidth="4" strokeLinecap="round" />
+            <line x1="100" y1="2" x2="160" y2="42" stroke="#5d4037" strokeWidth="4" strokeLinecap="round" />
+          </svg>
+          <div className="flex gap-16">
+            {node(p.parts[0])}
+            {node(p.parts[1])}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (p.kind === "pattern") {
+    return (
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-3xl bg-white px-4 py-4 text-6xl shadow-lg">
+        {p.items.map((it, i) =>
+          i === p.ask ? (
+            <span
+              key={i}
+              className={`grid h-20 w-20 place-items-center rounded-2xl ${revealed ? "border-4 border-green-500 bg-green-100" : "border-4 border-dashed border-orange-400 bg-orange-50 text-5xl font-extrabold text-orange-400"}`}
+            >
+              {revealed ? <Emo e={p.answer} /> : "?"}
+            </span>
+          ) : (
+            <span key={i} className={`grid h-20 w-20 place-items-center ${counted[0] !== undefined && i < (counted[0] ?? 0) ? "rounded-2xl ring-4 ring-orange-300" : ""}`}>
+              <Emo e={it} />
+            </span>
+          ),
+        )}
+      </div>
+    );
+  }
+
+  if (p.kind === "sentence") {
+    const [a, b] = p.text.split("…");
+    return (
+      <div className="flex flex-col items-center gap-4">
+        {p.emoji && <div className="grid h-36 w-36 place-items-center rounded-[2rem] bg-white text-8xl shadow-lg">{p.emoji}</div>}
+        <div className="flex max-w-3xl flex-wrap items-center justify-center gap-x-2 gap-y-3 rounded-3xl bg-white px-6 py-4 text-4xl font-extrabold leading-snug text-sky-950 shadow-lg">
+          <span>{a}</span>
+          <span
+            className={`grid min-h-16 min-w-32 place-items-center rounded-2xl px-3 ${
+              fill !== undefined ? "border-4 border-green-500 bg-green-100 text-green-700" : "border-4 border-dashed border-orange-400 bg-orange-50 text-orange-400"
+            }`}
+          >
+            {fill ?? "…"}
+          </span>
+          {b && <span>{b}</span>}
+        </div>
+      </div>
+    );
+  }
+
   if (p.kind === "expr") {
     // Hint: a tower of blocks above each number (counted[0] = how many numbers have their tower).
     // Towers share one baseline, so the taller tower is the bigger number.
@@ -106,7 +232,7 @@ export function PictureView({ p, counted, fill }: { p: Picture; counted: number[
   if (p.kind === "card") {
     return (
       <div className="flex flex-col items-center gap-3">
-        <div className="grid h-40 w-40 place-items-center rounded-[2rem] bg-white text-8xl shadow-lg">{p.emoji}</div>
+        {p.emoji && <div className="grid h-40 w-40 place-items-center rounded-[2rem] bg-white text-8xl shadow-lg">{p.emoji}</div>}
         {p.parts && (
           <div className="flex items-end text-6xl font-extrabold">
             {p.parts.map((part, i) =>
@@ -205,7 +331,8 @@ export function PictureView({ p, counted, fill }: { p: Picture; counted: number[
   );
 }
 
-export const groupsOf = (p?: Picture): Group[] => (p && (p.kind === "rows" || p.kind === "side" || p.kind === "scene") ? p.groups : []);
+export const groupsOf = (p?: Picture): Group[] =>
+  p && (p.kind === "rows" || p.kind === "side" || p.kind === "scene") ? p.groups : p && (p.kind === "eq" || p.kind === "bond") ? (p.groups ?? []) : [];
 
 /**
  * Plays a step-by-step walkthrough: lights up the method step, lets the renderer show the step

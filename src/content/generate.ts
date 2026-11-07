@@ -2,48 +2,23 @@
 import { ANIMALS, COLOR_PAIRS, FRUITS, THINGS, objectPool, type Obj } from "./objects";
 import { isMastered, useProgress } from "@/lib/store";
 import { settings } from "@/lib/settings";
-import type { ChooseQ, Group, Question, Spec } from "./types";
+import type { ChooseQ, Question, Spec } from "./types";
 import { pick, shuffle } from "@/lib/vn";
 import { generateTV } from "./tv/generate";
+import { LETTERS, SIGN_WORD, abc, blocks, compareNums, compareTowers, g, pointSign, rnd, signOf } from "./mathUtil";
+import { generateMore } from "./generateMore";
+import { methodKey } from "./methods";
 
 let seq = 0;
 const uid = () => `q${++seq}`;
 
-/** Random integer in [a, b]. */
-const rnd = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
-
-const LETTERS = ["A", "B", "C"];
-export const SIGN_WORD: Record<string, string> = { ">": "lớn hơn", "<": "bé hơn", "=": "bằng" };
-
-const signOf = (a: number, b: number) => (a > b ? ">" : a < b ? "<" : "=");
-
-// ---- Walkthrough phrases (literal, same wording every time) ----
-const blocks = (n: number) => (n === 0 ? "Số 0: không có khối nào." : `Gấu xếp ${n} khối.`);
-const compareTowers = (a: number, b: number) =>
-  a === b ? `Hai tháp cao bằng nhau. ${a} bằng ${b}.` : `Tháp số ${Math.max(a, b)} cao hơn. ${Math.max(a, b)} lớn hơn ${Math.min(a, b)}.`;
-const compareNums = (a: number, b: number) => (a === b ? `${a} bằng ${b}.` : `${Math.max(a, b)} lớn hơn ${Math.min(a, b)}.`);
-const pointSign = (a: number, b: number) =>
-  a === b
-    ? `Hai số bằng nhau. Mình chọn dấu bằng. ${a} bằng ${b}.`
-    : `Đầu nhọn chỉ vào số bé hơn, là số ${Math.min(a, b)}. Mình chọn dấu ${SIGN_WORD[signOf(a, b)]}. ${a} ${SIGN_WORD[signOf(a, b)]} ${b}.`;
+export { SIGN_WORD };
 
 /** Two different objects. */
 function twoObjs(pool: Obj[]): [Obj, Obj] {
   const [a, b] = shuffle(pool);
   return [a, b];
 }
-
-/** Three distinct numbers within [lo, hi] including n, sorted ascending (like A/B/C on paper). */
-function abc(n: number, lo: number, hi: number): number[] {
-  const pool: number[] = [];
-  for (let v = lo; v <= hi; v++) if (v !== n) pool.push(v);
-  const near = shuffle(pool)
-    .sort((x, y) => Math.abs(x - n) - Math.abs(y - n))
-    .slice(0, 4);
-  return [n, ...shuffle(near).slice(0, 2)].sort((x, y) => x - y);
-}
-
-const g = (o: Obj, n: number): Group => ({ emoji: o.emoji, name: o.name, n });
 
 function numberChoice(base: Omit<ChooseQ, "options" | "answer" | "style" | "uid" | "type">, n: number, lo: number, hi: number): ChooseQ {
   const nums = abc(n, lo, hi);
@@ -64,7 +39,14 @@ export function easier(spec: Spec): Spec {
       return { ...spec, max: Math.max(lo, Math.ceil(hi * 0.6)) };
     }
     case "sign":
+    case "num-tf":
+    case "expr-sign":
+    case "add":
+    case "sub":
+    case "calc-match":
       return { ...spec, max: Math.min(spec.max ?? 10, 5) };
+    case "bond":
+      return { ...spec, min: Math.min(spec.min ?? 3, 3), max: Math.min(spec.max ?? 10, 5) };
     case "scene-count":
       return { ...spec, max: Math.min(spec.max ?? 9, 5) };
     default:
@@ -79,7 +61,7 @@ export function generate(spec: Spec): Question {
 
 function generateMath(spec: Spec): Question {
   // Same pictures until the child has mastered this kind; the chosen theme replaces the pools.
-  const fixed = !isMastered(useProgress.getState().attempts, spec.kind);
+  const fixed = !isMastered(useProgress.getState().attempts, methodKey(spec));
   const theme = settings().theme;
   const P = (base: Obj[], need = 1) => objectPool(base, need, fixed, theme);
   switch (spec.kind) {
@@ -506,7 +488,7 @@ function generateMath(spec: Spec): Question {
         ],
       };
     }
-      default:
-      throw new Error(`Không có bộ sinh câu hỏi cho dạng ${spec.kind}`);
+    default:
+      return generateMore(spec, P);
   }
 }
