@@ -28,6 +28,22 @@ export type Spec =
   | { kind: "pick-number" } // Nối ô trống với số thích hợp (7 > ☐)
   | { kind: "adjust-counts" } // Vẽ thêm hình cho thích hợp (2 < 3)
   | { kind: "attr-compare" } // Có ☐ quả xanh và ☐ quả vàng — loại nào nhiều hơn?
+  | { kind: "num-tf"; max?: number } // Đúng ghi Đ, sai ghi S: 8 > 9
+  | { kind: "extreme"; mode: "max" | "min"; pictures?: boolean } // số lớn nhất / bé nhất · tranh nhiều nhất / ít nhất
+  // ---- Gộp, tách, cộng, trừ ----
+  | { kind: "bond"; mode: "split" | "join"; min?: number; max?: number; pictures?: boolean } // 8 gồm 5 và ☐ · gộp hai nhóm
+  | { kind: "add"; max?: number; pictures?: boolean; terms?: 2 | 3; missing?: boolean } // 2 + 4 = ☐ · 6 + ☐ = 8 · 3 + 4 + 1
+  | { kind: "sub"; max?: number; pictures?: boolean; missing?: boolean; bond?: boolean } // 7 − 3 = ☐ · 4 − ☐ = 3
+  | { kind: "expr-sign"; max?: number; sub?: boolean } // 3 + 2 ☐ 6
+  | { kind: "calc-match"; to: "number" | "expr"; sub?: boolean; max?: number } // Nối phép tính với kết quả / phép tính bằng nhau
+  | { kind: "calc-select"; sub?: boolean } // Chọn tất cả phép tính có kết quả bằng 10
+  // ---- Hình phẳng ----
+  | { kind: "shape-pick" } // Chọn hình tròn
+  | { kind: "shape-object" } // Vật này có dạng hình gì?
+  | { kind: "shape-match" } // Nối mỗi vật với tên hình
+  | { kind: "shape-all" } // Chọn tất cả hình tam giác
+  | { kind: "shape-count" } // Trong hình có mấy hình vuông?
+  | { kind: "shape-pattern" } // Hình thích hợp đặt vào dấu ?
   // ---- Tiếng Việt (src/content/tv/) ----
   | { kind: "tv-read"; items: string[] } // Luyện đọc: chạm thẻ, Gấu đánh vần rồi đọc
   | { kind: "tv-trace"; strokes: StrokeId[] } // Tập viết nét: kéo ngón tay theo đường chấm
@@ -36,10 +52,17 @@ export type Spec =
   | { kind: "tv-sound"; sounds: string[] } // Vật chứa tiếng có âm a là? (hình)
   | { kind: "tv-sound-all"; sounds: string[]; words?: string[] } // Chọn tất cả hình (hoặc tiếng) có âm b
   | { kind: "tv-word-pic"; words?: string[] } // Hình đúng với tiếng hổ dữ là?
-  | { kind: "tv-correct-word"; words?: string[] } // Khoanh vào từ viết đúng: cà / cá
-  | { kind: "tv-fill"; letters: string[]; words?: string[] } // Điền d hay đ: …ế
-  | { kind: "tv-match"; words?: string[]; sentences?: [string, string][] } // Đọc và nối: chữ ↔ hình, hoặc nối thành câu
-  | { kind: "tv-spell"; words?: string[]; model?: boolean; letters?: string[] }; // Viết tên sự vật / tập viết: ghép âm đầu + âm thứ hai + dấu
+  | { kind: "tv-rhyme"; rhymes: string[]; words?: string[] } // Tiếng có vần on là? (hình; hoặc chỉ chữ khi có `words`)
+  | { kind: "tv-correct-word"; words?: string[]; pairs?: [string, string][] } // Khoanh vào từ viết đúng: cà / cá · pairs = [đúng, sai]
+  | { kind: "tv-wrong"; items: [string, string | null][] } // Đánh dấu X vào từ viết sai: [chữ hiện ra, cách viết đúng / null nếu đã đúng]
+  | { kind: "tv-fill"; letters: string[]; words?: string[] } // Điền d hay đ: …ế · g / gh · vần am / ăm / âm
+  | { kind: "tv-cloze"; items: ClozeItem[] } // Chọn từ điền vào chỗ trống trong câu
+  | { kind: "tv-match"; words?: string[]; sentences?: [string, string][]; join?: "từ" | "câu" } // Đọc và nối: chữ ↔ hình, hoặc nối thành từ / câu
+  | { kind: "tv-order"; sentences: string[][] } // Sắp xếp các từ thành câu (các phần theo đúng thứ tự)
+  | { kind: "tv-spell"; words?: string[]; model?: boolean; letters?: string[] }; // Viết tên sự vật / tập viết: ghép âm đầu + âm thứ hai (vần) + dấu
+
+/** One "chọn từ điền vào chỗ trống" sentence. `s` contains "…" where the word goes. */
+export type ClozeItem = { s: string; options: string[]; answer: string; emoji?: string };
 
 /** Vietnamese tones. "ngang" = no mark. */
 export type Tone = "ngang" | "huyền" | "sắc" | "hỏi" | "ngã" | "nặng";
@@ -59,7 +82,8 @@ export type StrokeId =
   | "khuyet-tren"
   | "khuyet-duoi";
 
-export type Group = { emoji: string; n: number; name: string };
+/** `emoji` may also be a shape token ("shape:tron:#e53935", see shapes.ts). `gone` = how many of the last items are crossed out (phép trừ). */
+export type Group = { emoji: string; n: number; name: string; gone?: number };
 
 export type Picture =
   | { kind: "rows"; groups: Group[] } // one row per group, columns aligned (good for pairing)
@@ -68,7 +92,11 @@ export type Picture =
   | { kind: "expr"; parts: (string | number)[] } // e.g. [7, "☐", 5]
   | { kind: "dice"; n: number } // dots laid out like a dice face (0–10)
   | { kind: "legend"; items: { num: number; color: string; label: string }[]; ask: number } // colour key + the number asked
-  | { kind: "card"; emoji: string; parts?: string[]; mark?: string; answer?: string }; // one big picture (+ word with a blank "☐"; mark = tone shown above the blank; answer = text that fills it)
+  | { kind: "card"; emoji: string; parts?: string[]; mark?: string; answer?: string } // one big picture (+ word with a blank "☐"; mark = tone shown above the blank; answer = text that fills it)
+  | { kind: "eq"; parts: (string | number)[]; groups?: Group[]; hidden?: boolean } // 2 + 4 = ☐ (groups above it; hidden = only shown once counted)
+  | { kind: "bond"; whole: number | "☐"; parts: [number | "☐", number | "☐"]; groups?: Group[]; hidden?: boolean } // sơ đồ tách / gộp số
+  | { kind: "pattern"; items: string[]; ask: number; answer: string } // dãy hình lặp lại, "?" ở vị trí ask
+  | { kind: "sentence"; text: string; emoji?: string }; // câu có chỗ trống "…"
 
 /** `label` = the written word under a picture card (shown when `labels` is on). */
 export type Option = { text?: string; groups?: Group[]; label?: string };
@@ -92,6 +120,7 @@ export type WalkStep = {
   count?: number; // ChooseQ: count this group aloud one by one (1, 2, 3…) before speaking
   fill?: boolean; // ChooseQ: show the answer now
   row?: 0 | 1; // AdjustQ: after speaking, fix this row one picture at a time, counting aloud
+  cross?: boolean; // ChooseQ: cross out the `gone` items now (phép trừ)
 };
 
 type Base = {
@@ -143,24 +172,27 @@ export type ColorQ = Base & { type: "color"; n: number; total: number; emoji: st
 export type ReadQ = Base & { type: "read"; cards: { text: string; spell: string }[] };
 
 /** Chọn tất cả: tap every correct card, then "Xong". */
-export type SelectQ = Base & { type: "select"; cards: Card[]; correct: number[] };
+export type SelectQ = Base & { type: "select"; cards: Card[]; correct: number[]; hint2?: string; quiet?: boolean }; // quiet: tapping a picture does not say its name
 
 /** Nối: tap a left card, then the matching right card. answer[i] = right index for left i. */
-export type PairQ = Base & { type: "pair"; left: Card[]; right: Card[]; answer: number[] };
+export type PairQ = Base & { type: "pair"; left: Card[]; right: Card[]; answer: number[]; hint2?: string };
 
 /** Ghép tiếng: for each syllable, pick âm đầu, âm thứ hai and dấu from tiles. */
-export type SpellSlot = { label: string; tiles: string[]; answer: number };
+export type SpellSlot = { role: "onset" | "rhyme" | "tone"; label: string; tiles: string[]; answer: number };
 export type SpellQ = Base & {
   type: "spell";
   emoji?: string; // picture to name (viết tên sự vật)
   model?: string; // word to copy (tập viết)
-  syllables: { text: string; slots: [SpellSlot, SpellSlot, SpellSlot] }[];
+  syllables: { text: string; slots: SpellSlot[] }[]; // âm đầu (left out when the tiếng has none) · âm thứ hai / vần · dấu
 };
+
+/** Sắp xếp thành câu: tap the parts in order. `parts` are shuffled; `order[k]` = index of the k-th part. */
+export type OrderQ = Base & { type: "order"; parts: string[]; order: number[]; sentence: string };
 
 /** Tập viết nét: drag along a dotted stroke from the green dot to the red dot. */
 export type TraceQ = Base & { type: "trace"; stroke: StrokeId; name: string; d: string };
 
-export type Question = ChooseQ | SequenceQ | MatchQ | AdjustQ | BasketQ | ColorQ | ReadQ | SelectQ | PairQ | SpellQ | TraceQ;
+export type Question = ChooseQ | SequenceQ | MatchQ | AdjustQ | BasketQ | ColorQ | ReadQ | SelectQ | PairQ | SpellQ | TraceQ | OrderQ;
 
 // ---- Course structure ----
 

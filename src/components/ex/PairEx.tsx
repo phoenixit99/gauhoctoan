@@ -5,12 +5,21 @@ import type { Card, PairQ } from "@/content/types";
 import { speak } from "@/lib/speech";
 import { sfx } from "@/lib/sfx";
 import { playWalk, usePrompt, type ExProps } from "./common";
+import { Emo } from "./Emo";
 
 const LINE_COLORS = ["#ef5350", "#42a5f5", "#66bb6a", "#ffa726", "#ab47bc"];
 type Line = { x1: number; y1: number; x2: number; y2: number; color: string };
 
 function CardFace({ c, big }: { c: Card; big?: boolean }) {
-  if (c.emoji) return <span className="text-6xl leading-none">{c.emoji}</span>;
+  if (c.emoji)
+    return (
+      <span className="flex flex-col items-center gap-1">
+        <span className="text-6xl leading-none">
+          <Emo e={c.emoji} />
+        </span>
+        {c.text && <span className="text-2xl font-extrabold">{c.text}</span>}
+      </span>
+    );
   return <span className={`font-extrabold ${big ? "text-4xl" : "text-3xl"}`}>{c.text}</span>;
 }
 
@@ -54,6 +63,10 @@ export function PairEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Pair
     let alive = true;
     (async () => {
       await prompt.current;
+      if (hint === 2 && q.hint2) {
+        await speak(q.hint2);
+        return;
+      }
       if (hint === 2) {
         const left = q.left.map((c) => c.say).join(", ");
         await speak(q.left[0].emoji ? `Gấu nói tên các hình: ${left}.` : `Các phần đầu là: ${left}.`);

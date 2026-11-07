@@ -19,6 +19,7 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
   const [walkFill, setWalkFill] = useState(false);
   const [labels, setLabels] = useState(false); // show the written word under picture cards
   const [focus, setFocus] = useState<number | null>(null); // option the bear is talking about
+  const [crossed, setCrossed] = useState(false); // phép trừ: crossed-out items shown (always shown when pictures are visible)
   const prompt = usePrompt(q);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
           if (w.labels) setLabels(true);
           setFocus(w.focus ?? null);
           if (w.show) setCounted(w.show);
+          if (w.cross) setCrossed(true);
           if (w.count !== undefined) {
             const gi = w.count;
             const n = groupsOf(q.picture)[gi]?.n ?? 0;
@@ -74,6 +76,7 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
         setCounted([1]);
       } else if (c?.mode === "all") {
         setCounted(groupsOf(q.picture).map((g) => g.n));
+        setCrossed(true);
         if (q.picture?.kind === "expr") setCounted([99]);
         if (q.picture?.kind === "dice") setCounted([q.picture.n]);
         setOptCounted(true);
@@ -112,7 +115,15 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 overflow-y-auto p-4">
-      {q.picture && <PictureView p={q.picture} counted={counted} fill={revealed ? q.options[q.answer].text : undefined} />}
+      {q.picture && (
+        <PictureView
+          p={q.picture}
+          counted={counted}
+          fill={revealed ? q.options[q.answer].text : undefined}
+          revealed={revealed}
+          crossed={crossed || !("hidden" in q.picture && q.picture.hidden)}
+        />
+      )}
 
       {q.style === "cards" ? (
         <div className="flex flex-wrap items-stretch justify-center gap-4">
@@ -133,13 +144,14 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
                       : "border-sky-300 bg-white"
               }`}
             >
-              {q.options.length <= 3 && (
+              {q.options.length <= 4 && (
                 <span className="absolute left-3 top-2 text-2xl font-extrabold text-sky-700">{LETTERS[i]}.</span>
               )}
               {o.groups?.map((g, gi) => (
                 <GroupView key={gi} g={g} size={g.n === 1 ? "text-7xl" : "text-4xl"} counted={optCounted && g.n > 1 ? g.n : 0} />
               ))}
               {labels && o.label && <span className="mt-1 text-3xl font-extrabold text-sky-800">{o.label}</span>}
+              {!o.groups && o.text && <span className="text-4xl font-extrabold text-sky-900">{o.text}</span>}
             </motion.button>
           ))}
         </div>
