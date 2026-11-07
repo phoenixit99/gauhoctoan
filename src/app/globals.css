@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-baloo), ui-rounded, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --sky-top: #bfe9ff;
+  --sky-bottom: #fff4d6;
+  --ink: #3b2a1a;
+}
+
+html,
+body {
+  overscroll-behavior: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-baloo), ui-rounded, system-ui, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
+
+.sky {
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+}
+
+.sea {
+  background: radial-gradient(ellipse at 50% 40%, #8fdcff 0%, #4fb6e8 70%, #3a9fd4 100%);
+}
+
+/* Chunky, tactile kid buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 72px;
+  min-width: 72px;
+  padding: 0.5rem 1.6rem;
+  border-radius: 1.6rem;
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: white;
+  border-bottom: 7px solid rgba(0, 0, 0, 0.22);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+  transition: transform 0.08s ease, border-bottom-width 0.08s ease;
+  cursor: pointer;
+}
+.btn:active {
+  transform: translateY(4px);
+  border-bottom-width: 3px;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.btn-green { background: #4caf50; }
+.btn-orange { background: #ff9800; }
+.btn-blue { background: #2196f3; }
+.btn-pink { background: #ec407a; }
+.btn-white { background: white; color: var(--ink); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-6deg); }
+  75% { transform: rotate(6deg); }
+}
+.wiggle { animation: wiggle 0.35s ease-in-out 2; }
+
+/* Gentle "tap me" pulse, done in CSS so it costs no JavaScript per frame. */
+@keyframes breathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.06; }
+}
+.breathe { animation: breathe 1.6s ease-in-out infinite; }
