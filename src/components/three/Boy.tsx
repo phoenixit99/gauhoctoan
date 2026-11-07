@@ -78,6 +78,10 @@ type Props = {
   carrying?: boolean;
   /** girl look: hair to the shoulders with two bunches and bows, skirt instead of shorts. */
   girl?: boolean;
+  /** in the pool: "swim" = arms paddle one after the other, legs kick; "splash" = both arms slap the water (playing). */
+  swim?: "swim" | "splash";
+  /** phase offset so kids in a group don't move in step. */
+  offset?: number;
 };
 
 /** The main character: a boy or a girl, as set on the setup screen. */
@@ -90,7 +94,7 @@ export function Hero(props: Omit<Props, "girl">) {
  * A cute Grade 1 schoolboy (chibi proportions) built from primitives.
  * Faces +z. Outfit: navy polo with white trim, cream shorts, orange backpack. Short black hair with a fringe.
  */
-export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt, bag = true, carrying = false, girl = false }: Props) {
+export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt, bag = true, carrying = false, girl = false, swim, offset = 0 }: Props) {
   shirt ??= girl ? GIRL_SHIRT : SHIRT;
   const body = useRef<Group>(null);
   const armL = useRef<Group>(null);
@@ -127,6 +131,35 @@ export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt
     }
     if (body.current) body.current.position.y = w ? Math.abs(Math.sin(t * 9)) * 0.06 : Math.sin(t * 2) * 0.015;
     if (head.current) head.current.rotation.z = w ? 0 : Math.sin(t * 1.5) * 0.05;
+    if (swim) {
+      const u = t + offset;
+      const kick = Math.sin(u * 14) * 0.35;
+      if (legL.current) legL.current.rotation.x = -0.3 + kick;
+      if (legR.current) legR.current.rotation.x = -0.3 - kick;
+      if (swim === "swim") {
+        // paddle: each arm reaches forward over the ring and pulls back, one after the other
+        if (armL.current) {
+          armL.current.rotation.z = -0.25;
+          armL.current.rotation.x = -1.4 + Math.sin(u * 5) * 0.9;
+        }
+        if (armR.current) {
+          armR.current.rotation.z = 0.25;
+          armR.current.rotation.x = -1.4 - Math.sin(u * 5) * 0.9;
+        }
+      } else {
+        // splash: both arms up, then slap down on the water
+        const slap = Math.max(0, Math.sin(u * 6));
+        if (armL.current) {
+          armL.current.rotation.x = -0.3;
+          armL.current.rotation.z = -(2.2 - slap * 1.5); // raised out to the side, then down onto the water
+        }
+        if (armR.current) {
+          armR.current.rotation.x = -0.3;
+          armR.current.rotation.z = 2.2 - slap * 1.5;
+        }
+      }
+      if (head.current) head.current.rotation.z = Math.sin(u * 2.5) * 0.08;
+    }
   });
 
   return (

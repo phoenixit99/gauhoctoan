@@ -332,27 +332,292 @@ function FootballGame() {
   );
 }
 
+const POOL = { x: 12.8, z: -10, hx: 3.5, hz: 3 }; // pool centre and water half-size in world units
+const WATER_Y = 0.27; // water surface, clearly above the deck top (0.2) so it never flickers
+
 function Pool() {
   const ref = useRef<Group>(null);
   useFrame(({ clock }) => {
-    if (ref.current) ref.current.position.y = -0.02 + Math.sin(clock.elapsedTime * 1.5) * 0.015;
+    if (ref.current) ref.current.position.y = Math.sin(clock.elapsedTime * 1.5) * 0.012;
   });
   return (
-    <group position={[12.8, 0, -10]}>
+    <group position={[POOL.x, 0, POOL.z]}>
       <Box p={[0, 0.1, 0]} s={[8, 0.2, 7]} c="#eceff1" />
       <group ref={ref}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.22, 0]}>
-          <planeGeometry args={[7, 6]} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_Y - 0.02, 0]}>
+          <planeGeometry args={[POOL.hx * 2, POOL.hz * 2]} />
           <meshStandardMaterial color="#29b6f6" roughness={0.15} metalness={0.1} />
         </mesh>
       </group>
       {[-1.5, 0, 1.5].map((x) => (
-        <Box key={x} p={[x, 0.25, 0]} s={[0.06, 0.06, 6]} c={x === 0 ? "#ffeb3b" : "#ef5350"} />
+        <Box key={x} p={[x, WATER_Y + 0.01, 0]} s={[0.06, 0.06, 6]} c={x === 0 ? "#ffeb3b" : "#ef5350"} />
       ))}
       {/* ladder */}
       {[-0.25, 0.25].map((x) => (
         <Box key={x} p={[x, 0.6, 3.05]} s={[0.06, 0.8, 0.06]} c="#b0bec5" />
       ))}
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pool visit: classmates in swim rings swim laps and play with a beach ball; the main
+// character walks to the ladder, takes the backpack off, puts a ring on and hops in.
+// ---------------------------------------------------------------------------
+
+const RING_COLORS = [
+  ["#ff5252", "#ffffff"],
+  ["#ffca28", "#26c6da"],
+  ["#ab47bc", "#ffffff"],
+  ["#66bb6a", "#ffee58"],
+  ["#ff7043", "#ffffff"],
+];
+const RING_Y = 0.85; // waist height of the kid model (before scale)
+
+/** An inflatable swim ring (phao bơi) around the waist: four stripes in two colours. */
+function SwimRing({ colors, scale = 1 }: { colors: string[]; scale?: number }) {
+  return (
+    <group position={[0, RING_Y * scale, 0]} rotation={[Math.PI / 2, 0, 0]} scale={scale}>
+      {[0, 1, 2, 3].map((k) => (
+        <mesh key={k} rotation={[0, 0, (k * Math.PI) / 2]} castShadow>
+          <torusGeometry args={[0.42, 0.14, 12, 16, Math.PI / 2]} />
+          <meshStandardMaterial color={colors[k % 2]} roughness={0.35} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Rings of little waves spreading out on the water around a kid. */
+function Ripples({ scale = 1, offset = 0 }: { scale?: number; offset?: number }) {
+  const rings = useRef<(Mesh | null)[]>([]);
+  useFrame(({ clock }) => {
+    rings.current.forEach((m, i) => {
+      if (!m) return;
+      const k = (clock.elapsedTime * 0.6 + offset + i * 0.5) % 1;
+      m.scale.setScalar(0.7 + k * 1.4);
+      (m.material as { opacity: number }).opacity = 0.55 * (1 - k);
+    });
+  });
+  return (
+    <group position={[0, RING_Y * scale + 0.01, 0]}>
+      {[0, 1].map((i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            rings.current[i] = el;
+          }}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <ringGeometry args={[0.55 * scale, 0.62 * scale, 32]} />
+          <meshBasicMaterial color="#e1f5fe" transparent opacity={0.5} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Water drops jumping up when a playing kid slaps the water. */
+function Splash({ offset = 0 }: { offset?: number }) {
+  const drops = useRef<(Mesh | null)[]>([]);
+  const dirs = useMemo(() => Array.from({ length: 6 }, (_, i) => (i / 6) * Math.PI * 2), []);
+  useFrame(({ clock }) => {
+    // matches the slap in Boy (sin(u*6)): drops fly while the arms come down
+    const k = (((clock.elapsedTime + offset) * 6) / (Math.PI * 2) + 0.25) % 1;
+    drops.current.forEach((m, i) => {
+      if (!m) return;
+      const a = dirs[i];
+      const r = 0.45 + k * 0.5;
+      m.position.set(Math.cos(a) * r, RING_Y + 0.1 + Math.sin(k * Math.PI) * 0.6, Math.sin(a) * r);
+      m.visible = k < 0.9;
+    });
+  });
+  return (
+    <group>
+      {dirs.map((_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            drops.current[i] = el;
+          }}
+        >
+          <sphereGeometry args={[0.05, 8, 6]} />
+          <meshStandardMaterial color="#e3f2fd" transparent opacity={0.85} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** One classmate floating in a ring. Moves via the group ref the parent animates. */
+function Floater({ i, swim, setRef }: { i: number; swim: "swim" | "splash"; setRef: (g: Group | null) => void }) {
+  return (
+    <group ref={setRef}>
+      <Boy swim={swim} offset={i * 0.7} bag={false} shirt={SHIRTS[i % SHIRTS.length]} girl={i % 2 === 1} />
+      <SwimRing colors={RING_COLORS[i % RING_COLORS.length]} />
+      <Ripples offset={i * 0.3} />
+      {swim === "splash" && <Splash offset={i * 0.7} />}
+    </group>
+  );
+}
+
+// Lanes are along z (the lane ropes in Pool). Local x of each swimmer's lane.
+const LANES = [-2.6, 0.75];
+const HERO_LANE = -0.9;
+// two friends play catch with a beach ball in the right-hand corner
+const PLAYERS = [
+  { x: 2.5, z: -1.4 },
+  { x: 2.5, z: 1.4 },
+];
+const SWIM_HZ = 2.2; // how far along z the swimmers go from the centre
+const bob = (t: number, k: number) => Math.sin(t * 2.2 + k) * 0.04;
+
+/** Float height: the ring sits on the water. */
+const floatY = (scale: number) => WATER_Y - RING_Y * scale;
+
+// Main character's way from the yard to the pool ladder (world units), then the jump into the water.
+const POOL_PATH: [number, number][] = [
+  [YARD[0], YARD[1]],
+  [7.4, 5],
+  [7.4, -5.4],
+  [POOL.x + HERO_LANE, -5.9],
+];
+const POOL_JUMP_TO: [number, number] = [POOL.x + HERO_LANE, POOL.z + POOL.hz - 0.9];
+
+function PoolVisit() {
+  const swimmers = useRef<(Group | null)[]>([]);
+  const players = useRef<(Group | null)[]>([]);
+  const ball = useRef<Mesh>(null);
+  const hero = useRef<Group>(null);
+  const walking = useRef(true);
+  const st = useRef({ x: POOL_PATH[0][0], z: POOL_PATH[0][1], i: 1, stage: "walk" as "walk" | "ready" | "jump" | "swim", t0: 0, heading: Math.PI });
+  const [ready, setReady] = useState(false); // backpack off, ring on
+  const [inWater, setInWater] = useState(false);
+
+  useFrame(({ clock }, dt) => {
+    const t = clock.elapsedTime;
+    // classmates swimming laps
+    swimmers.current.forEach((g, k) => {
+      if (!g) return;
+      const w = 0.45 + k * 0.12;
+      const z = POOL.z + Math.sin(t * w + k * 2) * SWIM_HZ;
+      const vz = Math.cos(t * w + k * 2);
+      g.position.set(POOL.x + LANES[k], floatY(1) + bob(t, k), z);
+      const want = vz >= 0 ? 0 : Math.PI;
+      let d = want - g.rotation.y;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      g.rotation.y += d * Math.min(1, dt * 3);
+    });
+    // two friends tossing a beach ball
+    players.current.forEach((g, k) => {
+      if (!g) return;
+      const p = PLAYERS[k];
+      g.position.set(POOL.x + p.x, floatY(1) + bob(t, 3 + k), POOL.z + p.z);
+      g.rotation.y = k === 0 ? 0 : Math.PI; // face each other
+    });
+    if (ball.current) {
+      const period = 2.4;
+      const ph = (t % period) / period; // 0→1: player 0 → player 1, then back
+      const there = ph < 0.5;
+      const k = there ? ph * 2 : (ph - 0.5) * 2;
+      const z0 = PLAYERS[there ? 0 : 1].z + (there ? 0.5 : -0.5);
+      const z1 = PLAYERS[there ? 1 : 0].z + (there ? -0.5 : 0.5);
+      ball.current.position.set(POOL.x + PLAYERS[0].x, WATER_Y + 1.1 + Math.sin(k * Math.PI) * 1.4, POOL.z + z0 + (z1 - z0) * k);
+      ball.current.rotation.x = t * 4;
+    }
+
+    // the main character
+    const h = hero.current;
+    const s = st.current;
+    if (!h) return;
+    if (s.stage === "walk") {
+      walking.current = true;
+      const [tx, tz] = POOL_PATH[s.i];
+      const dx = tx - s.x;
+      const dz = tz - s.z;
+      const len = Math.hypot(dx, dz);
+      const step = Math.min(len, 2.4 * Math.min(dt, 0.05));
+      if (len > 1e-4) {
+        s.x += (dx / len) * step;
+        s.z += (dz / len) * step;
+        h.rotation.y = Math.atan2(dx, dz);
+      }
+      h.position.set(s.x, 0.02, s.z);
+      if (len - step < 0.02) {
+        s.i++;
+        if (s.i >= POOL_PATH.length) {
+          // at the ladder: face the water, take the bag off, put the ring on
+          s.stage = "ready";
+          s.t0 = t;
+          walking.current = false;
+          h.rotation.y = Math.PI;
+          setReady(true);
+        }
+      }
+    } else if (s.stage === "ready") {
+      if (t - s.t0 > 1.4) {
+        s.stage = "jump";
+        s.t0 = t;
+      }
+    } else if (s.stage === "jump") {
+      // a small hop forward into the water
+      const k = Math.min(1, (t - s.t0) / 0.7);
+      const [fx, fz] = POOL_PATH[POOL_PATH.length - 1];
+      const [jx, jz] = POOL_JUMP_TO;
+      s.x = fx + (jx - fx) * k;
+      s.z = fz + (jz - fz) * k;
+      const y = 0.02 + (floatY(1.1) - 0.02) * k + Math.sin(k * Math.PI) * 0.9;
+      h.position.set(s.x, y, s.z);
+      if (k >= 1) {
+        s.stage = "swim";
+        s.t0 = t;
+        setInWater(true);
+      }
+    } else {
+      // swim laps in the free lane, starting from the near end
+      const w = 0.5;
+      const u = (t - s.t0) * w + Math.PI / 2;
+      const z = POOL.z + Math.sin(u) * (POOL.hz - 0.9);
+      const vz = Math.cos(u);
+      h.position.set(POOL.x + HERO_LANE, floatY(1.1) + bob(t, 9), z);
+      const want = vz >= 0 ? 0 : Math.PI;
+      let d = want - h.rotation.y;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      h.rotation.y += d * Math.min(1, dt * 3);
+    }
+  });
+
+  return (
+    <group>
+      {LANES.map((_, k) => (
+        <Floater
+          key={`s${k}`}
+          i={k}
+          swim="swim"
+          setRef={(g) => {
+            swimmers.current[k] = g;
+          }}
+        />
+      ))}
+      {PLAYERS.map((_, k) => (
+        <Floater
+          key={`p${k}`}
+          i={k + 2}
+          swim="splash"
+          setRef={(g) => {
+            players.current[k] = g;
+          }}
+        />
+      ))}
+      <mesh ref={ball} castShadow>
+        <sphereGeometry args={[0.28, 20, 16]} />
+        <meshStandardMaterial color="#ff4081" roughness={0.4} />
+      </mesh>
+      <group ref={hero} position={[POOL_PATH[0][0], 0.02, POOL_PATH[0][1]]}>
+        <Hero walking={walking} scale={1.1} bag={!ready} swim={inWater ? "swim" : undefined} />
+        {ready && <SwimRing colors={["#ff9800", "#ffffff"]} scale={1.1} />}
+        {inWater && <Ripples scale={1.1} />}
+      </group>
     </group>
   );
 }
@@ -634,11 +899,13 @@ function SmoothCamera({
   boy,
   onField = false,
   inCanteen = false,
+  atPool = false,
 }: {
   phase: SchoolPhase;
   boy: React.RefObject<Group | null>;
   onField?: boolean;
   inCanteen?: boolean;
+  atPool?: boolean;
 }) {
   const { camera, size } = useThree();
   const pos = useRef(new Vector3(...CAMS.gate.pos));
@@ -652,7 +919,12 @@ function SmoothCamera({
     w.pos.set(...c.pos);
     w.target.set(...c.target);
     const b = boy.current;
-    if (inCanteen) {
+    if (atPool) {
+      // the pool fills the frame, seen from the yard side (front), slightly from above
+      // the target sits in front of the pool so the pool shows in the upper part, clear of the subject menu
+      w.pos.set(POOL.x - 0.5, 11, POOL.z + 11.5);
+      w.target.set(POOL.x, 0, POOL.z + 2.2);
+    } else if (inCanteen) {
       // dollhouse view of the canteen from the front-right
       w.pos.set(CANTEEN.x - 0.5, 13, CANTEEN.z + 9);
       w.target.set(CANTEEN.x - 0.5, 0, CANTEEN.z + 0.3);
@@ -774,7 +1046,7 @@ export type Place = { key: string; text: string; pos: [number, number, number]; 
 export const PLACES: Place[] = [
   { key: "class", text: "🏫 Dãy phòng học", pos: [-13, FLOORS * FLOOR_H + 1, 0], say: "Đây là dãy phòng học. Lớp của con ở phòng đầu tiên, tầng trệt." },
   { key: "field", text: "⚽ Sân thể thao", pos: [0, 0.6, -3.5], say: "Sân thể thao. Giờ ra chơi mình đá bóng ở đây!" },
-  { key: "pool", text: "🏊 Hồ bơi", pos: [12.8, 1, -10], say: "Hồ bơi. Sắp có bài học ở đây nhé!" },
+  { key: "pool", text: "🏊 Hồ bơi", pos: [12.8, 1, -10], say: "Hồ bơi. Các bạn đeo phao bơi rồi mới xuống nước. Mình cùng bơi nhé!" },
   { key: "canteen", text: "🍱 Nhà ăn", pos: [11.5, 3.6, 0.5], say: "Nhà ăn. Giờ ăn trưa mình vào đây lấy cơm nhé!" },
   { key: "talent", text: "🎨 Năng khiếu", pos: [10.6, 5.2, 8.5], say: "Phòng năng khiếu: vẽ, hát, múa. Sắp có nhé!" },
   { key: "admissions", text: "📋 Tuyển sinh", pos: [10.6, 2.4, 8.5], say: "Nhà tuyển sinh." },
@@ -796,10 +1068,11 @@ export function SchoolScene({
   const boy = useRef<Group>(null);
   const labelEls = useRef<(HTMLElement | null)[]>([]);
   const showPlaces = phase === "yard";
-  const [activity, setActivity] = useState<null | "field" | "canteen">(null);
+  const [activity, setActivity] = useState<null | "field" | "canteen" | "pool">(null);
   const onField = activity === "field" && phase === "yard";
   const inCanteen = activity === "canteen" && phase === "yard";
-  const away = onField || inCanteen;
+  const atPool = activity === "pool" && phase === "yard";
+  const away = onField || inCanteen || atPool;
 
   return (
     <div className="relative h-full w-full">
@@ -833,7 +1106,8 @@ export function SchoolScene({
         ))}
         {!away && <WalkingBoy phase={phase} skip={skip} onArrived={onArrived} groupRef={boy} />}
         {onField && <FootballGame />}
-        <SmoothCamera phase={phase} boy={boy} onField={onField} inCanteen={inCanteen} />
+        {atPool && <PoolVisit />}
+        <SmoothCamera phase={phase} boy={boy} onField={onField} inCanteen={inCanteen} atPool={atPool} />
         <Projector
           count={PLACES.length + 2}
           els={labelEls}
@@ -868,6 +1142,7 @@ export function SchoolScene({
               onClick={() => {
                 if (p.key === "field") setActivity("field");
                 if (p.key === "canteen") setActivity("canteen");
+                if (p.key === "pool") setActivity("pool");
                 onPlace(p);
               }}
               className="whitespace-nowrap rounded-full bg-white/95 px-3 py-1 text-base font-extrabold shadow-md active:scale-95">
