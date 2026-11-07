@@ -39,6 +39,18 @@ Mỗi **dạng câu** (`kind`) có một phương pháp cố định gồm 3–4
 5. Phương pháp so sánh luôn nói rõ phải làm gì khi **hai bên bằng nhau**.
 6. Nói điều cần làm, không nói điều không được làm. Khi bé làm sai, nói "Chưa đúng", không nói "Gần đúng rồi".
 
+## Cách dạy cho bé ASD (đã có sẵn trong app, áp dụng cho mọi bài)
+
+- **Biết trước mọi việc (TEACCH):** mục tiêu → các bước ①②③ → "Câu X/N" và các chấm → dải "✏️ Làm N câu → 🎁 Chọn sticker" → màn hình "Xong rồi", lần nào cũng giống nhau.
+- **Gợi ý theo bậc, rút dần** (`Runner.tsx`): dạng câu mới thì đầu mỗi câu Gấu sáng và đọc bước 1. Bé làm đúng thì bậc 2 → 1 (chỉ sáng) → 0 (không gợi ý); bé sai thì tăng lại. Bậc gợi ý lưu theo `kind` (`support` trong `store.ts`).
+- **Bé chưa chạm** sau `autoHintSec` giây (cài đặt): lần 1 Gấu đọc bước 1, lần 2 Gấu đưa gợi ý đếm (hint 2). Gợi ý này **không tính là lỗi**.
+- **Khi sai:** lần 1 Gấu nói "Chưa đúng. Mình làm lại từ bước 1". Lần 2 Gấu làm mẫu cả câu, rồi cho một câu dễ hơn (`easier()` trong `generate.ts`). Câu nói khi sai luôn bắt đầu bằng "Chưa đúng." **Không rung, không đỏ, không buzz.**
+- **Khen cố định:** "Đúng rồi! {tên} giỏi lắm." Pháo giấy tắt theo mặc định.
+- **Không trừ sao trước mặt bé:** bé chỉ thấy "Xong rồi" và chọn phần thưởng. Sao chỉ dùng nội bộ (đánh dấu cần ôn); phụ huynh xem bé "đã thuộc" dạng nào (3 câu gần nhất đúng ngay, không gợi ý).
+- **Khái quát hóa:** dạng câu bé chưa thuộc thì luôn dùng cùng một hình (`objectPool`, `fixed`). Thuộc rồi mới đổi hình.
+- **Chủ đề bé thích** (`theme`): con vật, hoa quả, xe cộ. Mỗi bộ cần **ít nhất 4 hình khác nhau** và tên phải có **loại từ** (con, quả, chiếc…). Khi viết câu nói, không ghi cứng "con vật" hay "quả". Dùng `o.name`.
+- Nút **Nghỉ** (góc trên phải) và nút **⚙️ phụ huynh** (giữ 2 giây) luôn ở cùng chỗ. Đừng đặt nút khác vào góc đó.
+
 Dạng câu đã có phương pháp: `sign`, `picture-sign`, `attr-compare`, `pick-number`, `adjust-counts` (Tuần 4).
 
 ## Các dạng câu có sẵn

@@ -1,7 +1,8 @@
 "use client";
 import { useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Euler, Matrix4, Vector3, type Group } from "three";
+import { DoubleSide, Euler, Matrix4, Vector3, type Group } from "three";
+import { useKid } from "@/lib/kid";
 
 const SKIN = "#f1c7a2";
 const HAIR = "#1d1a18";
@@ -10,6 +11,11 @@ const TRIM = "#ffffff"; // white collar trim + placket
 const SHORTS = "#eee6d3"; // cream shorts
 
 const BAG = "#ff8f3a";
+
+// girl outfit
+const GIRL_SHIRT = "#f06292"; // pink polo
+const SKIRT = "#24345f"; // navy skirt
+const BOW = "#ff4f8b";
 
 type Tuft = { p: [number, number, number]; s: [number, number, number]; r: [number, number, number] };
 
@@ -70,13 +76,22 @@ type Props = {
   bag?: boolean;
   /** holds both arms forward, e.g. carrying a tray. */
   carrying?: boolean;
+  /** girl look: hair to the shoulders with two bunches and bows, skirt instead of shorts. */
+  girl?: boolean;
 };
+
+/** The main character: a boy or a girl, as set on the setup screen. */
+export function Hero(props: Omit<Props, "girl">) {
+  const girl = useKid((s) => s.gender === "girl");
+  return <Boy {...props} girl={girl} />;
+}
 
 /**
  * A cute Grade 1 schoolboy (chibi proportions) built from primitives.
  * Faces +z. Outfit: navy polo with white trim, cream shorts, orange backpack. Short black hair with a fringe.
  */
-export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt = SHIRT, bag = true, carrying = false }: Props) {
+export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt, bag = true, carrying = false, girl = false }: Props) {
+  shirt ??= girl ? GIRL_SHIRT : SHIRT;
   const body = useRef<Group>(null);
   const armL = useRef<Group>(null);
   const armR = useRef<Group>(null);
@@ -125,7 +140,7 @@ export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt
           <group key={x} ref={ref} position={[x, 0.62, 0]}>
             <mesh position={[0, -0.12, 0]} castShadow>
               <cylinderGeometry args={[0.13, 0.12, 0.2, 16]} />
-              <meshStandardMaterial color={SHORTS} />
+              <meshStandardMaterial color={girl ? SKIN : SHORTS} />
             </mesh>
             <mesh position={[0, -0.33, 0]}>
               <cylinderGeometry args={[0.075, 0.07, 0.3, 12]} />
@@ -142,11 +157,18 @@ export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt
           </group>
         ))}
 
-        {/* shorts + shirt */}
-        <mesh position={[0, 0.66, 0]} castShadow>
-          <cylinderGeometry args={[0.27, 0.29, 0.18, 20]} />
-          <meshStandardMaterial color={SHORTS} />
-        </mesh>
+        {/* shorts (boy) or a flared skirt (girl) + shirt */}
+        {girl ? (
+          <mesh position={[0, 0.6, 0]} castShadow>
+            <cylinderGeometry args={[0.27, 0.4, 0.3, 24]} />
+            <meshStandardMaterial color={SKIRT} />
+          </mesh>
+        ) : (
+          <mesh position={[0, 0.66, 0]} castShadow>
+            <cylinderGeometry args={[0.27, 0.29, 0.18, 20]} />
+            <meshStandardMaterial color={SHORTS} />
+          </mesh>
+        )}
         <mesh position={[0, 0.93, 0]} castShadow>
           <capsuleGeometry args={[0.26, 0.28, 8, 20]} />
           <meshStandardMaterial color={shirt} roughness={0.7} />
@@ -247,6 +269,35 @@ export function Boy({ walking, sitting = false, waving = false, scale = 1, shirt
               <meshStandardMaterial color={i % 4 ? HAIR : "#2a2420"} roughness={0.9} />
             </mesh>
           ))}
+
+          {girl && (
+            <>
+              {/* longer hair at the back, down to the neck */}
+              <mesh position={[0, 0, -0.02]} scale={[1, 1.06, 1]}>
+                <sphereGeometry args={[0.44, 32, 24, Math.PI, Math.PI, 0, Math.PI * 0.74]} />
+                <meshStandardMaterial color={HAIR} roughness={1} side={DoubleSide} />
+              </mesh>
+              {/* two bunches with bows */}
+              {[-1, 1].map((d) => (
+                <group key={d} position={[d * 0.4, 0.08, -0.12]}>
+                  <mesh position={[0, 0, 0]}>
+                    <sphereGeometry args={[0.07, 14, 12]} />
+                    <meshStandardMaterial color={BOW} />
+                  </mesh>
+                  {[-1, 1].map((w) => (
+                    <mesh key={w} position={[d * 0.02, w * 0.06, 0.03]} rotation={[0, 0, w * 0.6]} scale={[0.6, 1, 0.5]}>
+                      <sphereGeometry args={[0.07, 12, 10]} />
+                      <meshStandardMaterial color={BOW} />
+                    </mesh>
+                  ))}
+                  <mesh position={[d * 0.1, -0.13, -0.02]} rotation={[0, 0, d * 0.35]} scale={[0.75, 1.5, 0.75]}>
+                    <sphereGeometry args={[0.1, 16, 14]} />
+                    <meshStandardMaterial color={HAIR} roughness={1} />
+                  </mesh>
+                </group>
+              ))}
+            </>
+          )}
 
           {/* ears (stick out a little) */}
           {[-1, 1].map((d) => (

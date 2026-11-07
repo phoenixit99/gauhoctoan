@@ -1,4 +1,5 @@
 "use client";
+import { useSettings } from "@/lib/settings";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3, type Group } from "three";
@@ -227,7 +228,52 @@ export type OrchardProps = {
   bearHappy?: boolean;
 };
 
-export function Orchard({
+/** The orchard: 3D, or a flat 2D version when the parent turned 3D off. */
+export function Orchard(props: OrchardProps) {
+  const flat = useSettings((s) => s.no3D);
+  return flat ? <FlatOrchard {...props} /> : <Orchard3D {...props} />;
+}
+
+/** 2D orchard: apples on the tree (top), apples in the basket (bottom), in the order they were put in. */
+function FlatOrchard({ apples, basket, onTapApple, highlight = [], labels = {}, bearHappy }: OrchardProps) {
+  const onTree = Array.from({ length: apples }, (_, i) => i).filter((i) => !basket.includes(i));
+  const apple = (i: number) => (
+    <button
+      key={i}
+      disabled={!onTapApple}
+      onClick={() => onTapApple?.(i)}
+      aria-label="quả táo"
+      className={`relative grid h-16 w-16 place-items-center rounded-full text-5xl ${highlight.includes(i) ? "ring-4 ring-yellow-300" : ""}`}
+    >
+      🍎
+      {labels[i] !== undefined && (
+        <span className="absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-white text-lg font-extrabold text-orange-600 shadow ring-2 ring-orange-300">
+          {labels[i]}
+        </span>
+      )}
+    </button>
+  );
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-4">
+      <div className="flex min-h-24 w-full max-w-3xl flex-wrap items-center justify-center gap-2 rounded-[2rem] bg-green-200/80 p-3 shadow-inner">
+        <span className="mr-2 text-5xl" aria-hidden>
+          🌳
+        </span>
+        {onTree.map(apple)}
+      </div>
+      <div className="flex items-end gap-4">
+        <span className="text-7xl" aria-label={bearHappy ? "Gấu vui" : "Gấu"}>
+          {bearHappy ? "🐻😊" : "🐻"}
+        </span>
+        <div className="flex min-h-28 min-w-72 max-w-2xl flex-wrap items-center justify-center gap-2 rounded-b-[3rem] rounded-t-xl border-8 border-amber-700 bg-amber-200 p-3 shadow-lg">
+          {basket.length === 0 ? <span className="text-5xl opacity-60">🧺</span> : basket.map(apple)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Orchard3D({
   apples,
   basket,
   onTapApple,

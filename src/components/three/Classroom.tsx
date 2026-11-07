@@ -1,6 +1,6 @@
 "use client";
 import { useRef, type ReactNode } from "react";
-import { Boy } from "./Boy";
+import { Boy, Hero } from "./Boy";
 import { Overlay, RectTracker, Stage } from "./Stage";
 
 // Room: x ∈ [-7, 7], z ∈ [-7, 8]; blackboard on the front wall (z = -7).
@@ -101,7 +101,7 @@ export function ClassroomScene({ board }: { board: ReactNode }) {
               const hero = ci === 1 && ri === 2 && si === 0;
               return (
                 <group key={`${x}-${z}-${si}`} position={[x + dx, 0.48, z + 0.75]} rotation={[0, Math.PI, 0]}>
-                  <Boy sitting scale={0.95} shirt={hero ? undefined : SHIRTS[(ci * 4 + ri * 2 + si) % SHIRTS.length]} />
+                  {hero ? <Hero sitting scale={0.95} /> : <Boy sitting scale={0.95} shirt={SHIRTS[(ci * 4 + ri * 2 + si) % SHIRTS.length]} />}
                 </group>
               );
             }),

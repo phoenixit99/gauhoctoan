@@ -59,3 +59,33 @@ export const COLOR_PAIRS: [Obj, Obj][] = [
     { emoji: "🟨", name: "khối màu vàng" },
   ],
 ];
+
+export const VEHICLES: Obj[] = [
+  { emoji: "🚗", name: "chiếc ô tô" },
+  { emoji: "🚌", name: "chiếc xe buýt" },
+  { emoji: "🚲", name: "chiếc xe đạp" },
+  { emoji: "✈️", name: "chiếc máy bay" },
+  { emoji: "🚂", name: "chiếc tàu hỏa" },
+  { emoji: "🚁", name: "chiếc trực thăng" },
+  { emoji: "🚜", name: "chiếc máy cày" },
+  { emoji: "🚒", name: "chiếc xe cứu hỏa" },
+  { emoji: "🛵", name: "chiếc xe máy" },
+  { emoji: "⛵", name: "chiếc thuyền" },
+];
+
+/**
+ * Theme pools the parent (or child) can choose. Each needs at least 4 different objects
+ * (match uses 4, scene-count 3, comparisons 2), and every name needs its classifier (con, quả, chiếc…).
+ */
+export const THEME_POOLS: Record<"animals" | "fruits" | "vehicles", Obj[]> = { animals: ANIMALS, fruits: FRUITS, vehicles: VEHICLES };
+
+/**
+ * The objects one question may use.
+ * - theme "mix": the kind's own pool; otherwise the theme's pool.
+ * - fixed (the child has not mastered this kind yet): only the first `need` objects, so the
+ *   pictures stay the same every time. Once mastered, objects vary (generalisation).
+ */
+export function objectPool(base: Obj[], need: number, fixed: boolean, theme: "mix" | keyof typeof THEME_POOLS): Obj[] {
+  const pool = theme === "mix" ? base : THEME_POOLS[theme];
+  return fixed ? pool.slice(0, need) : pool;
+}

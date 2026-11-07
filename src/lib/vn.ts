@@ -6,7 +6,8 @@ export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-export const PRAISE = [
+/** Built on each call so it uses the child's current name. */
+export const praises = () => [
   "Đúng rồi! Giỏi quá!",
   "Tuyệt vời!",
   "Con giỏi lắm!",

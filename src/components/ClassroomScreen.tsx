@@ -10,6 +10,8 @@ import { speak } from "@/lib/speech";
 import { sfx } from "@/lib/sfx";
 import { KID } from "@/lib/kid";
 import { subjectOf } from "@/content/subjects";
+import { useSettings } from "@/lib/settings";
+import { StickerAlbum } from "./StickerAlbum";
 
 /** Inside the first classroom: this week's lessons are written on the blackboard. */
 export function ClassroomScreen({
@@ -24,7 +26,9 @@ export function ClassroomScreen({
   onLeave: () => void;
 }) {
   const { stars, review } = useProgress();
-  const statuses = weekStatuses(week, stars, review);
+  const unlockAll = useSettings((s) => s.unlockAll);
+  const flat = useSettings((s) => s.no3D);
+  const statuses = weekStatuses(week, stars, review, unlockAll);
   const currentIdx = statuses.findIndex((s) => s.unlocked && !s.done);
 
   useEffect(() => {
@@ -70,7 +74,7 @@ export function ClassroomScreen({
                 {isSheet ? "Phiếu bài tập" : `Bài ${i + 1}: ${lesson.title}`}
               </span>
               <span style={{ fontSize: "0.9em" }}>
-                {st.done ? "⭐".repeat(st.stars) + "☆".repeat(3 - st.stars) : current ? "👉 Học bài này" : ""}
+                {st.done ? "✅ Đã xong" : current ? "👉 Học bài này" : ""}
               </span>
               {st.review && <span className="absolute right-1 top-1">🔁</span>}
             </motion.button>
@@ -83,11 +87,20 @@ export function ClassroomScreen({
   return (
     <div className="sky flex h-dvh flex-col">
       <main className="relative min-h-0 flex-1">
-        <ClassroomScene board={board} />
+        {flat ? (
+          <div className="grid h-full place-items-center p-4 pt-20">
+            <div className="aspect-[16/9] w-full max-w-5xl overflow-hidden rounded-3xl border-[14px] border-amber-800 bg-[#2f5d46] shadow-2xl" style={{ containerType: "size" }}>
+              {board}
+            </div>
+          </div>
+        ) : (
+          <ClassroomScene board={board} />
+        )}
         <div className="absolute left-4 top-4 flex gap-3">
           <button className="btn btn-white !min-h-14 !text-xl" onClick={onLeave}>
             🏫 Ra sân trường
           </button>
+          <StickerAlbum />
         </div>
       </main>
       <Caption />

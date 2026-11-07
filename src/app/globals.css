@@ -90,3 +90,17 @@ body {
   50% { scale: 1.06; }
 }
 .breathe { animation: breathe 1.6s ease-in-out infinite; }
+
+/* Break screen: one slow breath (in 4 s, out 4 s). Kept even with "giảm chuyển động" because it is slow and is the point of the screen. */
+@keyframes breath {
+  0%, 100% { scale: 0.55; }
+  50% { scale: 1; }
+}
+.breath { animation: breath 8s ease-in-out infinite; }
+
+/* Parent setting "Giảm chuyển động": no pulsing or wiggling. */
+html.calm .breathe,
+html.calm .wiggle { animation: none !important; }
+
+/* Parent setting "Màu dịu". */
+html.soft { filter: saturate(0.6) brightness(1.02); }

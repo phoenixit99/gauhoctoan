@@ -9,7 +9,8 @@ import { useProgress } from "@/lib/store";
 import { weekStatuses } from "@/lib/progress";
 import { hasVietnameseVoice, speak, unlockSpeech } from "@/lib/speech";
 import { sfx } from "@/lib/sfx";
-import { KID } from "@/lib/kid";
+import { KID, useKid } from "@/lib/kid";
+import { useSettings } from "@/lib/settings";
 
 /**
  * The story: the boy stands at the school gate → walks into the yard → picks a subject
@@ -18,12 +19,14 @@ import { KID } from "@/lib/kid";
  * always sees which subject is chosen.
  */
 export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; onEnterClass: (w: WeekDef) => void }) {
+  const kidName = useKid((s) => s.name) || KID.name;
   const [phase, setPhase] = useState<SchoolPhase>(start);
   const [skip, setSkip] = useState(0);
   const [week, setWeek] = useState<WeekDef | null>(null);
   const [subject, setSubject] = useState<SubjectDef | null>(null);
   const [fading, setFading] = useState(false);
   const { stars, review, setLastWeek } = useProgress();
+  const flat = useSettings((s) => s.no3D);
 
   useEffect(() => {
     if (start === "yard") void speak(`Hôm nay ${KID.name} học môn nào?`);
@@ -53,6 +56,12 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
     unlockSpeech();
     sfx.unlock();
     sfx.ding();
+    if (flat) {
+      // No 3D: skip the walk, go straight to the yard.
+      void speak(`Chào ${KID.name}! Hôm nay ${KID.name} học môn nào?`);
+      setPhase("yard");
+      return;
+    }
     void speak(`Chào ${KID.name}! Mình cùng vào trường nhé!`);
     setPhase("walkIn");
   };
@@ -69,6 +78,10 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
     setWeek(w);
     setLastWeek(w.id);
     void speak(`Môn ${subject?.name ?? ""}, ${w.title}: ${w.topic}. Mình vào lớp nhé!`);
+    if (flat) {
+      onEnterClass(w);
+      return;
+    }
     setPhase("walkToClass");
   };
 
@@ -82,7 +95,13 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
   return (
     <div className="sky relative flex h-dvh flex-col">
       <main className="relative min-h-0 flex-1" onClick={walking ? () => setSkip((s) => s + 1) : undefined}>
-        <SchoolScene phase={phase} skip={skip} onArrived={onArrived} onPlace={onPlace} />
+        {flat ? (
+          <div className="grid h-full place-items-center text-[10rem] leading-none" aria-hidden>
+            🏫
+          </div>
+        ) : (
+          <SchoolScene phase={phase} skip={skip} onArrived={onArrived} onPlace={onPlace} />
+        )}
 
         {phase === "gate" && (
           <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2 sm:right-8">
@@ -93,7 +112,7 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
               className="rounded-3xl bg-white/90 px-5 py-2 text-right shadow-md"
             >
               <div className="text-4xl font-extrabold text-amber-800">Gấu Đi Học</div>
-              <div className="text-lg font-bold text-amber-800/80">Cùng {KID.name} học Toán và Tiếng Việt lớp 1</div>
+              <div className="text-lg font-bold text-amber-800/80">Cùng {kidName} học Toán và Tiếng Việt lớp 1</div>
             </motion.div>
             <button className="btn btn-orange breathe !min-h-24 !px-12 !text-4xl" onClick={begin}>
               Bắt đầu ▶
@@ -103,7 +122,7 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
         )}
 
         {walking && (
-          <button className="btn btn-white absolute right-4 top-4 !min-h-14 !text-xl" onClick={() => setSkip((s) => s + 1)}>
+          <button className="btn btn-white absolute right-4 top-20 !min-h-14 !text-xl" onClick={() => setSkip((s) => s + 1)}>
             Bỏ qua ⏩
           </button>
         )}
@@ -150,7 +169,7 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
             <div className="flex max-w-full gap-3 overflow-x-auto px-1 pb-2">
               {subject.weeks.map((w) => {
                 const st = weekStatuses(w, stars, review);
-                const got = st.reduce((a, s) => a + s.stars, 0);
+                const got = st.filter((s) => s.done).length;
                 const done = st.every((s) => s.done);
                 return (
                   <button
@@ -164,7 +183,7 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
                     </span>
                     <span className="max-w-48 text-sm font-bold leading-tight opacity-80">{w.topic}</span>
                     <span className="mt-1 text-sm font-extrabold">
-                      ⭐ {got}/{st.length * 3}
+                      ✅ {got}/{st.length} bài
                     </span>
                   </button>
                 );

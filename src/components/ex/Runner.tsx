@@ -61,7 +61,7 @@ export function starsFor(score: number, total: number) {
 }
 
 /** The same praise every time, so the child knows exactly what a right answer sounds like. */
-export const PRAISE_LINE = `Đúng rồi! ${KID.name} giỏi lắm.`;
+export const praiseLine = () => `Đúng rồi! ${KID.name} giỏi lắm.`;
 
 /** Wrong-answer lines always start the same way. */
 const wrongLine = (s: string) => (s.startsWith("Chưa đúng") ? s : `Chưa đúng. ${s}`);
@@ -101,6 +101,7 @@ export function Runner({
   const score = useRef(startAt?.score ?? 0);
   const [done, setDone] = useState(startAt?.done ?? 0);
   const [q, setQ] = useState<Question>(() => generate(specs[startAt?.done ?? 0]));
+  const [si, setSi] = useState(startAt?.done ?? 0); // index of the spec the current question came from
   const [extra, setExtra] = useState(false); // current question is extra practice
   const [hint, setHint] = useState<Hint>(0);
   const [locked, setLocked] = useState(false);
@@ -108,7 +109,7 @@ export function Runner({
   const [lastTap, setLastTap] = useState(0);
   const wrongs = useRef(0);
   const help = useRef(0);
-  const spec = specs[Math.min(done, specs.length - 1)];
+  const spec = specs[Math.min(si, specs.length - 1)];
   const method = methodFor(spec);
   const revealAt = q.type === "trace" ? 3 : 2; // tracing strays are not real mistakes, allow more
 
@@ -116,7 +117,6 @@ export function Runner({
   useEffect(() => {
     setMethodStep(-1);
     wrongs.current = 0;
-    setIdle(0);
     const level: Support = extra ? 2 : (useProgress.getState().support[spec.kind] ?? 2);
     help.current = method ? level : 0;
     if (!method || level === 0) return;
@@ -155,6 +155,7 @@ export function Runner({
     const nextDone = done + (finishedScored ? 1 : 0);
     setDone(nextDone);
     setHint(0);
+    setIdle(0);
     setLocked(false);
     if (practice) {
       setQ(practice);
@@ -166,6 +167,7 @@ export function Runner({
       onDone(starsFor(score.current, specs.length));
       return;
     }
+    setSi(nextDone);
     saveResume(itemId, { done: nextDone, score: score.current });
     // Time is up: stop between questions, never in the middle of one.
     if (isTimeUp()) {
@@ -192,7 +194,7 @@ export function Runner({
       if (celebrate) void confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 }, scalar: 1.1 });
       if (wrongs.current === 0 && !extra) score.current++;
       record();
-      await speak(PRAISE_LINE);
+      await speak(praiseLine());
       await wait(250);
       advance(null, !extra);
       return;

@@ -2,9 +2,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Shape, Vector3, type Group, type Mesh } from "three";
-import { Boy } from "./Boy";
+import { Boy, Hero } from "./Boy";
 import { Overlay, Projector, Stage } from "./Stage";
-import { KID } from "@/lib/kid";
+import { KID, useKid } from "@/lib/kid";
+
+/** The name tag above the main character; updates as soon as a parent changes the name. */
+function KidName() {
+  return <>{useKid((s) => s.name) || KID.name}</>;
+}
 
 // ---------------------------------------------------------------------------
 // Campus layout (x → right, z → towards the gate / camera). Gate at the front.
@@ -317,7 +322,7 @@ function FootballGame() {
         </group>
       ))}
       <group ref={hero}>
-        <Boy walking={running} scale={1.1} />
+        <Hero walking={running} scale={1.1} />
       </group>
       <mesh ref={ball} castShadow>
         <sphereGeometry args={[0.22, 16, 16]} />
@@ -545,7 +550,7 @@ function CanteenVisit({ onSeated }: { onSeated: () => void }) {
 
   return (
     <group ref={hero} position={[YARD[0], 0.02, YARD[1]]}>
-      <Boy walking={walking} scale={1.1} bag={bag} carrying={carry} sitting={sitting} />
+      <Hero walking={walking} scale={1.1} bag={bag} carrying={carry} sitting={sitting} />
       {carry && (
         <group position={[0, 1.1, 0.5]}>
           <mesh>
@@ -755,7 +760,7 @@ function WalkingBoy({
 
   return (
     <group ref={groupRef}>
-      <Boy walking={walking} waving={phase === "gate" || phase === "yard"} scale={1.1} />
+      <Hero walking={walking} waving={phase === "gate" || phase === "yard"} scale={1.1} />
     </group>
   );
 }
@@ -888,7 +893,7 @@ export function SchoolScene({
           className="absolute left-0 top-0"
           style={{ visibility: "hidden" }}
         >
-          <div className="whitespace-nowrap rounded-full bg-orange-400 px-3 py-0.5 text-lg font-extrabold text-white shadow-md">⭐ {KID.name}</div>
+          <div className="whitespace-nowrap rounded-full bg-orange-400 px-3 py-0.5 text-lg font-extrabold text-white shadow-md">⭐ <KidName /></div>
         </div>
       </Overlay>
     </div>

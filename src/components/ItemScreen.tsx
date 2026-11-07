@@ -345,7 +345,7 @@ export function ItemScreen({
 
   return (
     <div className="sky flex h-dvh flex-col">
-      <header className="flex items-center gap-3 pl-4 pr-28 pt-3">
+      <header className="flex items-center gap-3 pl-4 pr-36 pt-3">
         <button
           aria-label="Về lớp học"
           className="btn btn-white !min-h-14 !min-w-14 !px-0 !text-3xl"

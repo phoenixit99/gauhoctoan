@@ -1,5 +1,7 @@
 // Turns a Spec (recipe) into a concrete Question with random numbers.
-import { ANIMALS, COLOR_PAIRS, FRUITS, THINGS, type Obj } from "./objects";
+import { ANIMALS, COLOR_PAIRS, FRUITS, THINGS, objectPool, type Obj } from "./objects";
+import { isMastered, useProgress } from "@/lib/store";
+import { settings } from "@/lib/settings";
 import type { ChooseQ, Group, Question, Spec } from "./types";
 import { pick, shuffle } from "@/lib/vn";
 import { generateTV } from "./tv/generate";
@@ -76,6 +78,10 @@ export function generate(spec: Spec): Question {
 }
 
 function generateMath(spec: Spec): Question {
+  // Same pictures until the child has mastered this kind; the chosen theme replaces the pools.
+  const fixed = !isMastered(useProgress.getState().attempts, spec.kind);
+  const theme = settings().theme;
+  const P = (base: Obj[], need = 1) => objectPool(base, need, fixed, theme);
   switch (spec.kind) {
     case "count": {
       const lo = spec.min ?? 1;
@@ -97,7 +103,7 @@ function generateMath(spec: Spec): Question {
         q.reveal = `Có ${n} chấm tròn. Đáp án là số ${n}.`;
         return q;
       }
-      const o = pick([...ANIMALS, ...FRUITS]);
+      const o = pick(P([...ANIMALS, ...FRUITS]));
       const q = numberChoice(
         {
           prompt: `Có bao nhiêu ${o.name} trong hình?`,
@@ -122,7 +128,7 @@ function generateMath(spec: Spec): Question {
     case "make10": {
       const have = rnd(spec.min ?? 4, spec.max ?? 8);
       const need = 10 - have;
-      const o = pick(FRUITS);
+      const o = pick(P(FRUITS));
       const nums = abc(need, 1, 9);
       const counting = Array.from({ length: need }, (_, i) => have + i + 1).join(", ");
       return {
@@ -134,7 +140,7 @@ function generateMath(spec: Spec): Question {
         options: nums.map((v) => ({ groups: [g(o, v)] })),
         answer: nums.indexOf(need),
         count: { mode: "focus", group: 0 },
-        hint2: `Đã có ${have}. Mình đếm tiếp đến 10: ${counting}. Đếm thêm được mấy quả?`,
+        hint2: `Đã có ${have}. Mình đếm tiếp đến 10: ${counting}. Đếm thêm được mấy ${o.name}?`,
         reveal: `Có ${have}, đếm tiếp ${counting}. Cần thêm ${need} ${o.name}.`,
       };
     }
@@ -161,7 +167,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "scene-count": {
-      const objs = shuffle([...ANIMALS.slice(0, 6), ...THINGS.slice(0, 3)]).slice(0, 3);
+      const objs = shuffle(P([...ANIMALS.slice(0, 6), ...THINGS.slice(0, 3)], 3)).slice(0, 3);
       const max = spec.max ?? 9;
       const counts = max <= 5 ? [rnd(1, max), rnd(1, max), rnd(1, max)] : shuffle([rnd(1, 3), rnd(4, 6), rnd(7, max)]);
       const groups = objs.map((o, i) => g(o, counts[i]));
@@ -187,7 +193,7 @@ function generateMath(spec: Spec): Question {
     case "match": {
       const pairs = spec.pairs ?? 4;
       const nums = shuffle(Array.from({ length: (spec.max ?? 10) - (spec.min ?? 6) + 1 }, (_, i) => (spec.min ?? 6) + i)).slice(0, pairs);
-      const objs = shuffle(FRUITS).slice(0, pairs);
+      const objs = shuffle(P(FRUITS, pairs)).slice(0, pairs);
       return {
         uid: uid(),
         type: "match",
@@ -243,7 +249,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "pick-more": {
-      const [a, b] = twoObjs(ANIMALS);
+      const [a, b] = twoObjs(P(ANIMALS, 2));
       let x = rnd(1, 8);
       let y = rnd(1, 8);
       while (x === y) y = rnd(1, 8);
@@ -253,17 +259,17 @@ function generateMath(spec: Spec): Question {
         uid: uid(),
         type: "choose",
         style: "cards",
-        prompt: "Chạm vào bức tranh có nhiều con vật hơn",
+        prompt: "Chạm vào bức tranh có nhiều hình hơn",
         options: [{ groups: [g(a, x)] }, { groups: [g(b, y)] }],
         answer: ans,
         count: { mode: "all" },
         hint2: "Gấu đã đánh số rồi. Bức tranh nào có nhiều hơn?",
-        reveal: `Tranh này có ${Math.max(x, y)} con, nhiều hơn ${Math.min(x, y)} con.`,
+        reveal: `Tranh này có ${Math.max(x, y)} ${(ans === 0 ? a : b).name}. ${Math.max(x, y)} lớn hơn ${Math.min(x, y)}, nên tranh này nhiều hơn.`,
       };
     }
 
     case "add-equal": {
-      const [a, b] = twoObjs(ANIMALS);
+      const [a, b] = twoObjs(P(ANIMALS, 2));
       const want = rnd(3, 8);
       const have = rnd(1, want - 1);
       const need = want - have;
@@ -284,7 +290,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "true-false": {
-      const [a, b] = twoObjs(ANIMALS);
+      const [a, b] = twoObjs(P(ANIMALS, 2));
       const x = rnd(2, 7);
       const y = rnd(2, 7);
       const statements: { text: string; truth: boolean }[] = [];
@@ -312,7 +318,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "adjust-more": {
-      const [a, b] = [pick(THINGS.slice(0, 5)), pick(ANIMALS)];
+      const [a, b] = theme === "mix" ? [pick(P(THINGS.slice(0, 5))), pick(P(ANIMALS))] : twoObjs(P(ANIMALS, 2));
       const fixed = rnd(3, 6);
       const have = rnd(1, fixed - 1);
       return {
@@ -327,7 +333,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "adjust-equal": {
-      const [a, b] = twoObjs([...FRUITS, ...THINGS.slice(0, 5)]);
+      const [a, b] = twoObjs(P([...FRUITS, ...THINGS.slice(0, 5)], 2));
       const target = rnd(2, 6);
       let have = rnd(1, 7);
       while (have === target) have = rnd(1, 7);
@@ -369,7 +375,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "picture-sign": {
-      const [a, b] = twoObjs([...ANIMALS, ...FRUITS, ...THINGS.slice(0, 6)]);
+      const [a, b] = twoObjs(P([...ANIMALS, ...FRUITS, ...THINGS.slice(0, 6)], 2));
       const x = rnd(1, 9);
       const y = Math.random() < 0.2 ? x : rnd(1, 9);
       const s = signOf(x, y);
@@ -442,7 +448,7 @@ function generateMath(spec: Spec): Question {
     }
 
     case "adjust-counts": {
-      const [a, b] = twoObjs([...FRUITS, ...THINGS.slice(0, 6)]);
+      const [a, b] = twoObjs(P([...FRUITS, ...THINGS.slice(0, 6)], 2));
       const x = rnd(1, 6);
       let y = rnd(1, 6);
       while (x === y) y = rnd(1, 6);
