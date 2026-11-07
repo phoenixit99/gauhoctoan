@@ -158,6 +158,7 @@ export function Runner({
     setIdle(0);
     setLocked(false);
     if (practice) {
+      if (nextDone < specs.length) saveResume(itemId, { done: nextDone, score: score.current });
       setQ(practice);
       setExtra(true);
       return;
