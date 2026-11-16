@@ -34,7 +34,7 @@ export function ReadEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Read
     sfx.tap();
     setFocus(i);
     setHeard((h) => (h.includes(i) ? h : [...h, i]));
-    void speak(q.cards[i].spell, { caption: q.cards[i].text });
+    void speak(q.cards[i].spell, { caption: q.cards[i].text, kind: "asked" });
   };
 
   const allHeard = heard.length === q.cards.length;

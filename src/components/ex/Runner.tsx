@@ -130,7 +130,7 @@ export function Runner({
       await afterSpeech(); // let the question be read first
       if (!alive || wrongs.current > 0) return;
       setMethodStep(0);
-      if (level === 2) await speak(`Bước 1: ${method[0].text}.`);
+      if (level === 2) await speak(`Bước 1: ${method[0].text}.`, { kind: "help" });
     })();
     return () => {
       alive = false;
@@ -148,7 +148,7 @@ export function Runner({
       if (next === 1) {
         if (method) {
           setMethodStep(0);
-          void speak(`Mình làm bước 1: ${method[0].text}.`);
+          void speak(`Mình làm bước 1: ${method[0].text}.`, { kind: "help" });
         } else void speak(q.say ?? q.prompt, { caption: q.prompt });
       } else if (hint < 2) setHint(2);
     }, autoHintSec * 1000);
@@ -199,7 +199,7 @@ export function Runner({
       if (celebrate) void confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 }, scalar: 1.1 });
       if (wrongs.current === 0 && !extra) score.current++;
       record();
-      await speak(praiseLine());
+      await speak(praiseLine(), { kind: "praise" });
       await wait(250);
       advance(null, !extra);
       return;
@@ -214,13 +214,13 @@ export function Runner({
     }
     setHint(next);
     if (next < 3) {
-      if (customHint) void speak(wrongLine(customHint));
+      if (customHint) void speak(wrongLine(customHint), { kind: "help" });
       else if (method) {
         // Point to one step only (not the whole list): start again from step 1.
         setMethodStep(0);
-        void speak(`Chưa đúng. Mình làm lại từ bước 1: ${method[0].text}.`);
-      } else void speak("Chưa đúng. Con thử lại nhé.");
-    } else void speak("Chưa đúng. Gấu làm cùng con nhé.");
+        void speak(`Chưa đúng. Mình làm lại từ bước 1: ${method[0].text}.`, { kind: "help" });
+      } else void speak("Chưa đúng. Con thử lại nhé.", { kind: "help" });
+    } else void speak("Chưa đúng. Gấu làm cùng con nhé.", { kind: "help" });
   };
 
   const onRevealDone = () => {

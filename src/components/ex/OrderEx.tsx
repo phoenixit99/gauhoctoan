@@ -21,7 +21,7 @@ export function OrderEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ord
       if (hint === 2) {
         const next = q.order[placed.length];
         setFocus(next);
-        await speak(placed.length === 0 ? `Thẻ có chữ viết hoa đứng đầu câu: ${q.parts[next]}.` : `Thẻ tiếp theo là: ${q.parts[next]}.`);
+        await speak(placed.length === 0 ? `Thẻ có chữ viết hoa đứng đầu câu: ${q.parts[next]}.` : `Thẻ tiếp theo là: ${q.parts[next]}.`, { kind: "help" });
         return;
       }
       setPlaced([]);
@@ -56,7 +56,7 @@ export function OrderEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ord
     setFocus(null);
     const next = [...placed, i];
     setPlaced(next);
-    void speak(q.parts[i]);
+    void speak(q.parts[i], { kind: "echo" });
     if (next.length === q.parts.length) onAnswer(true);
   };
 

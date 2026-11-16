@@ -49,7 +49,7 @@ export function TraceEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Tra
     (async () => {
       await prompt.current;
       if (hint === 2) {
-        await speak(`Đặt ngón tay vào chấm xanh. Kéo theo đường chấm đến chấm đỏ.`);
+        await speak(`Đặt ngón tay vào chấm xanh. Kéo theo đường chấm đến chấm đỏ.`, { kind: "help" });
         return;
       }
       setProgress(0);
@@ -88,7 +88,7 @@ export function TraceEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Tra
       strays.current++;
       // Young children often touch around first: only remind. After 3 stray touches, move up the hint ladder.
       if (strays.current % 3 === 0) onAnswer(false, msg);
-      else void speak(msg);
+      else void speak(msg, { kind: "help" });
       return;
     }
     svgRef.current?.setPointerCapture?.(e.pointerId);
@@ -107,7 +107,7 @@ export function TraceEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Tra
       setProgress(n);
       if (n >= N) {
         drawing.current = false;
-        void speak(`Đây là ${q.name}.`).then(() => onAnswer(true));
+        void speak(`Đây là ${q.name}.`, { kind: "praise" }).then(() => onAnswer(true));
       }
     }
   };

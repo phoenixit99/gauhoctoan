@@ -349,7 +349,7 @@ export async function playWalk(
     const w = walk[i];
     setMethodStep(w.step ?? i);
     show?.(w, i);
-    await speak(w.say, { caption: w.caption });
+    await speak(w.say, { caption: w.caption, kind: "help" });
     if (!alive()) return false;
     await act?.(w, i);
     await wait(450);

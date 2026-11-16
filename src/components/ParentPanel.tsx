@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { useSettings, type Settings, type Theme } from "@/lib/settings";
+import { useSettings, type Settings, type TalkLevel, type Theme } from "@/lib/settings";
 import { MASTERY_RUN, isMastered, useProgress, type Attempt } from "@/lib/store";
 import { kindLabel } from "@/content/kinds";
 import { SUBJECTS } from "@/content/subjects";
@@ -50,6 +50,13 @@ const THEMES: { v: Theme; icon: string; label: string }[] = [
   { v: "vehicles", icon: "🚗", label: "Xe cộ" },
 ];
 
+const TALK_NOTE: Record<TalkLevel, string> = {
+  full: "Gấu nói mọi thứ: chào hỏi, chọn môn, chọn bài, phần thưởng, câu hỏi, gợi ý, lời khen.",
+  less: "Bỏ lời chào và lời dẫn đường. Gấu chỉ nói trong bài: câu hỏi, gợi ý, lời khen, đếm theo khi bé chạm.",
+  min: "Gấu chỉ đọc câu hỏi và gợi ý. Lời khen và đếm theo khi bé chạm chỉ hiện chữ (vẫn có tiếng “ting”).",
+  off: "Gấu không tự nói, chỉ hiện chữ. Bé chạm 🔊 bên cạnh lời Gấu để nghe khi muốn.",
+};
+
 /** Name and boy/girl. Saved as the parent types; an empty box keeps the old name. */
 function KidSection() {
   const kid = useKid();
@@ -86,6 +93,7 @@ function useKindRows(): KindRow[] {
 /** Parent area: sensory settings, hints, session length, theme, preview and the child's progress per question kind. */
 export function ParentPanel({ onClose }: { onClose: () => void }) {
   const theme = useSettings((s) => s.theme);
+  const talk = useSettings((s) => s.talk);
   const set = useSettings((s) => s.set);
   const reset = useSettings((s) => s.reset);
   const { stars, review } = useProgress();
@@ -104,11 +112,22 @@ export function ParentPanel({ onClose }: { onClose: () => void }) {
         <KidSection />
 
         <Section title="🔊 Âm thanh và giọng đọc">
+          <Seg
+            k="talk"
+            title="Gấu nói nhiều hay ít"
+            note={TALK_NOTE[talk]}
+            opts={[
+              { v: "full", label: "Nhiều" },
+              { v: "less", label: "Vừa" },
+              { v: "min", label: "Ít" },
+              { v: "off", label: "Tắt giọng" },
+            ]}
+          />
           <Seg k="sfxVolume" title="Âm thanh hiệu ứng (ting, pop…)" opts={[{ v: 0, label: "Tắt" }, { v: 0.3, label: "Nhỏ" }, { v: 0.6, label: "Vừa" }, { v: 1, label: "To" }]} />
           <Seg k="voiceVolume" title="Giọng Gấu: âm lượng" opts={[{ v: 0.4, label: "Nhỏ" }, { v: 0.7, label: "Vừa" }, { v: 1, label: "To" }]} />
           <Seg k="voiceRate" title="Giọng Gấu: tốc độ" opts={[{ v: 0.7, label: "Chậm" }, { v: 0.82, label: "Hơi chậm" }, { v: 0.92, label: "Bình thường" }]} />
           <div>
-            <button className="btn btn-white !min-h-12 !text-lg" onClick={() => void speak(`Chào ${KID.name}. Gấu nói thế này có dễ nghe không?`)}>
+            <button className="btn btn-white !min-h-12 !text-lg" onClick={() => void speak(`Chào ${KID.name}. Gấu nói thế này có dễ nghe không?`, { kind: "asked" })}>
               🔊 Nghe thử
             </button>
           </div>
@@ -147,7 +166,7 @@ export function ParentPanel({ onClose }: { onClose: () => void }) {
                 key={t.v}
                 onClick={() => {
                   set({ theme: t.v });
-                  void speak(t.label);
+                  void speak(t.label, { kind: "asked" });
                 }}
                 aria-pressed={theme === t.v}
                 className={`flex min-w-32 flex-col items-center rounded-3xl p-3 shadow-md ${theme === t.v ? "bg-orange-400 text-white ring-4 ring-yellow-300" : "bg-white"}`}

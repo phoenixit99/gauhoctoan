@@ -28,18 +28,18 @@ export function SequenceEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<
         // Count along from the start up to the current blank.
         for (let i = 0; i < cur && alive; i++) {
           setPointer(i);
-          await speak(String(q.values[i]));
+          await speak(String(q.values[i]), { kind: "help" });
         }
         if (!alive) return;
         setPointer(cur);
-        await speak("Số tiếp theo là số mấy?");
+        await speak("Số tiếp theo là số mấy?", { kind: "help" });
         return;
       }
       // Reveal: fill every remaining blank, counting along.
       for (let i = 0; i < q.values.length && alive; i++) {
         setPointer(i);
         if (q.blanks.includes(i)) setFilled((f) => (f.includes(i) ? f : [...f, i]));
-        await speak(String(q.values[i]));
+        await speak(String(q.values[i]), { kind: "help" });
       }
       if (!alive) return;
       setPointer(-1);
@@ -60,7 +60,7 @@ export function SequenceEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<
       setPointer(-1);
       sfx.pop();
       if (next.length === q.blanks.length) onAnswer(true);
-      else void speak(String(v));
+      else void speak(String(v), { kind: "echo" });
     } else {
       setShake(v);
       setTimeout(() => setShake(null), 500);

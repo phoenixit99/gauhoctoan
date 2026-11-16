@@ -61,7 +61,7 @@ function OrchardWatch({ onNext, onReplay }: { onNext: () => void; onReplay: () =
     (async () => {
       await wait(400);
       if (!alive) return;
-      await speak("Gấu hái táo nào! Con đếm cùng Gấu nhé. Mỗi quả chỉ đếm một lần.");
+      await speak("Gấu hái táo nào! Con đếm cùng Gấu nhé. Mỗi quả chỉ đếm một lần.", { kind: "help" });
       for (let i = 0; i < 10 && alive; i++) {
         await wait(250);
         if (!alive) return;
@@ -69,10 +69,10 @@ function OrchardWatch({ onNext, onReplay }: { onNext: () => void; onReplay: () =
         sfx.pop();
         await wait(350);
         if (!alive) return;
-        await speak(String(i + 1));
+        await speak(String(i + 1), { kind: "help" });
       }
       if (!alive) return;
-      await speak("Có tất cả 10 quả táo!", { caption: "Có tất cả 10 quả táo! 🍎" });
+      await speak("Có tất cả 10 quả táo!", { caption: "Có tất cả 10 quả táo! 🍎", kind: "help" });
       if (alive) setFinished(true);
     })();
     return () => {
@@ -115,14 +115,14 @@ function DemoWatch({ lesson, onNext, onReplay }: { lesson: LessonDef; onNext: ()
     let alive = true;
     setMethodStep(-1);
     (async () => {
-      await speak(`Bài hôm nay: ${lesson.title}. ${lesson.goal}`, { caption: lesson.goal });
+      await speak(`Bài hôm nay: ${lesson.title}. ${lesson.goal}`, { caption: lesson.goal, kind: "help" });
       if (!method) return;
       await wait(300);
       if (!alive) return;
-      await speak(`Mình làm theo ${method.length} bước.`);
+      await speak(`Mình làm theo ${method.length} bước.`, { kind: "help" });
       for (let i = 0; i < method.length && alive; i++) {
         setMethodStep(i);
-        await speak(`Bước ${i + 1}: ${method[i].text}.`);
+        await speak(`Bước ${i + 1}: ${method[i].text}.`, { kind: "help" });
         await wait(250);
       }
       if (alive) setMethodStep(-1);
@@ -198,10 +198,10 @@ function OrchardPlay({ onNext }: { onNext: () => void }) {
     sfx.pop();
     if (next.length === 10) {
       setReached(true);
-      void speak("10! Giỏ có 10 quả táo. Đúng rồi!", { caption: "10! Giỏ có 10 quả táo. Đúng rồi! ✅" });
+      void speak("10! Giỏ có 10 quả táo. Đúng rồi!", { caption: "10! Giỏ có 10 quả táo. Đúng rồi! ✅", kind: "praise" });
       if (useSettings.getState().celebrate) void confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
     } else if (next.length > 0) {
-      void speak(String(next.length));
+      void speak(String(next.length), { kind: "echo" });
     }
   };
 
@@ -217,7 +217,7 @@ function OrchardPlay({ onNext }: { onNext: () => void }) {
           onClick={() => {
             setBasket([]);
             sfx.tap();
-            void speak("Mình hái lại từ đầu nhé!");
+            void speak("Mình hái lại từ đầu nhé!", { kind: "chat" });
           }}
         >
           🔄 Hái lại
@@ -241,17 +241,17 @@ function DoneStep({ title, onMap, onAgain }: { title: string; onMap: () => void;
 
   useEffect(() => {
     sfx.star();
-    void speak(`Xong rồi! ${KID.name} làm xong ${title}. Con chọn một phần thưởng nhé.`, { caption: `Xong rồi! Con chọn một phần thưởng 🎁` });
+    void speak(`Xong rồi! ${KID.name} làm xong ${title}. Con chọn một phần thưởng nhé.`, { caption: `Xong rồi! Con chọn một phần thưởng 🎁`, kind: "chat" });
   }, [title]);
 
   const choose = (c: Sticker | "dance") => {
     if (got) return;
     sfx.pop();
     setGot(c);
-    if (c === "dance") void speak("Gấu nhảy cho con xem nhé!");
+    if (c === "dance") void speak("Gấu nhảy cho con xem nhé!", { kind: "chat" });
     else {
       addSticker(c.emoji);
-      void speak(`Con chọn sticker ${c.name}. Sticker đã vào bộ sưu tập của con.`);
+      void speak(`Con chọn sticker ${c.name}. Sticker đã vào bộ sưu tập của con.`, { kind: "chat" });
     }
   };
 
@@ -339,7 +339,7 @@ export function ItemScreen({
 
   useEffect(() => {
     if (resume) void speak(`Lần trước con làm đến câu ${resume.done + 1}. Con làm tiếp nhé?`);
-    else if (!lesson) void speak(`Phiếu bài tập ${subjectOf(week).name}, ${week.title}: ${week.topic}. Con làm từng câu nhé!`);
+    else if (!lesson) void speak(`Phiếu bài tập ${subjectOf(week).name}, ${week.title}: ${week.topic}. Con làm từng câu nhé!`, { kind: "chat" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson, week]);
 

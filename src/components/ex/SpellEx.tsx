@@ -59,7 +59,7 @@ export function SpellEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Spe
       await prompt.current;
       if (hint === 2) {
         const cur = pos(picksRef.current) ?? { s: 0, k: 0 };
-        await speak(`Đánh vần: ${spellSyl(q.syllables[cur.s].text)}.`, { caption: `Đánh vần: ${q.syllables[cur.s].text}` });
+        await speak(`Đánh vần: ${spellSyl(q.syllables[cur.s].text)}.`, { caption: `Đánh vần: ${q.syllables[cur.s].text}`, kind: "help" });
         return;
       }
       setPicks(q.syllables.map(() => []));

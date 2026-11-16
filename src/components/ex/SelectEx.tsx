@@ -23,14 +23,14 @@ export function SelectEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Se
       await prompt.current;
       if (hint === 2) {
         if (q.hint2) {
-          await speak(q.hint2);
+          await speak(q.hint2, { kind: "help" });
         } else if (q.cards.some((c) => c.emoji)) {
           setLabels(true);
-          await speak("Gấu viết tên dưới mỗi hình rồi. Con đọc từng tên nhé.");
+          await speak("Gấu viết tên dưới mỗi hình rồi. Con đọc từng tên nhé.", { kind: "help" });
         } else {
           for (let i = 0; i < q.cards.length && alive; i++) {
             setFocus(i);
-            await speak(`${spellSyl(q.cards[i].say)}.`, { caption: q.cards[i].text });
+            await speak(`${spellSyl(q.cards[i].say)}.`, { caption: q.cards[i].text, kind: "help" });
           }
           if (alive) setFocus(null);
         }
@@ -57,7 +57,7 @@ export function SelectEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Se
     if (locked || hint === 3) return;
     sfx.tap();
     setChosen((c) => (c.includes(i) ? c.filter((x) => x !== i) : [...c, i]));
-    if (q.cards[i].emoji && !q.quiet) void speak(q.cards[i].say);
+    if (q.cards[i].emoji && !q.quiet) void speak(q.cards[i].say, { kind: "echo" });
   };
 
   const check = () => {

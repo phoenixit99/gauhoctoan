@@ -16,7 +16,7 @@ export function StickerAlbum() {
         onClick={() => {
           sfx.tap();
           setOpen(true);
-          void speak(stickers.length ? `Con có ${stickers.length} sticker.` : "Con chưa có sticker. Học xong một bài, con được chọn sticker.");
+          void speak(stickers.length ? `Con có ${stickers.length} sticker.` : "Con chưa có sticker. Học xong một bài, con được chọn sticker.", { kind: "chat" });
         }}
       >
         🎁 {stickers.length}
@@ -29,7 +29,7 @@ export function StickerAlbum() {
             {stickers.map((s, i) => (
               <button
                 key={i}
-                onClick={() => void speak(`Sticker ${stickerName(s)}.`)}
+                onClick={() => void speak(`Sticker ${stickerName(s)}.`, { kind: "echo" })}
                 className="grid h-24 w-24 place-items-center rounded-3xl bg-white text-6xl shadow-md"
               >
                 {s}

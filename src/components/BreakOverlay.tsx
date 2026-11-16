@@ -13,7 +13,7 @@ export function BreakOverlay({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     stopSpeech();
     setPaused(true);
-    void speakNow("Mình nghỉ một chút. Hít vào. Thở ra.");
+    void speakNow("Mình nghỉ một chút. Hít vào. Thở ra.", { kind: "help" });
   }, []);
 
   const resume = () => {
