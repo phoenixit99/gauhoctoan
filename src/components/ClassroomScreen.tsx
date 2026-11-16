@@ -33,7 +33,7 @@ export function ClassroomScreen({
 
   useEffect(() => {
     const sub = subjectOf(week).name;
-    if (greet) void speak(`${KID.name} vào lớp rồi! Môn ${sub}, ${week.title}: ${week.topic}. ${KID.name} chọn bài trên bảng nhé.`, { caption: `${sub} · ${week.title}: ${week.topic}. ${KID.name} chọn bài trên bảng nhé! 👆` });
+    if (greet) void speak(`${KID.name} vào lớp rồi! Môn ${sub}, ${week.title}: ${week.topic}. ${KID.name} chọn bài trên bảng nhé.`, { caption: `${sub} · ${week.title}: ${week.topic}. ${KID.name} chọn bài trên bảng nhé! 👆`, kind: "chat" });
   }, [greet, week]);
 
   const select = (i: number) => {

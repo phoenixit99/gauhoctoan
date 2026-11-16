@@ -49,7 +49,7 @@ export function MatchEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Mat
 
   useEffect(() => {
     if (hint < 3) {
-      if (hint === 2) void prompt.current.then(() => speak("Gấu đã đánh số cho từng nhóm rồi. Con nối lại nhé!"));
+      if (hint === 2) void prompt.current.then(() => speak("Gấu đã đánh số cho từng nhóm rồi. Con nối lại nhé!", { kind: "help" }));
       return;
     }
     let alive = true;
@@ -58,7 +58,7 @@ export function MatchEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Mat
       for (let gi = 0; gi < q.groups.length && alive; gi++) {
         setPairs((p) => ({ ...p, [gi]: numIndexFor(gi) }));
         sfx.pop();
-        await speak(`${q.groups[gi].n} ${q.groups[gi].name}`);
+        await speak(`${q.groups[gi].n} ${q.groups[gi].name}`, { kind: "help" });
       }
       await wait(600);
       if (alive) onRevealDone();
@@ -71,7 +71,7 @@ export function MatchEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Mat
 
   const tapNumber = (ni: number) => {
     if (locked || hint === 3 || sel === null) {
-      if (sel === null) void speak("Con chạm vào một nhóm trước nhé!");
+      if (sel === null) void speak("Con chạm vào một nhóm trước nhé!", { kind: "help" });
       return;
     }
     if (q.numbers[ni] === q.groups[sel].n) {
@@ -80,7 +80,7 @@ export function MatchEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Mat
       setSel(null);
       sfx.pop();
       if (Object.keys(next).length === q.groups.length) onAnswer(true);
-      else void speak(`Đúng rồi, ${q.numbers[ni]}!`);
+      else void speak(`Đúng rồi, ${q.numbers[ni]}!`, { kind: "praise" });
     } else {
       setShake(ni);
       setTimeout(() => setShake(null), 500);

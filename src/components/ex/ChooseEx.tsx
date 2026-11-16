@@ -49,12 +49,12 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
                 return next;
               });
               sfx.tap();
-              await speak(String(i));
+              await speak(String(i), { kind: "help" });
             }
             if (!alive) return;
           }
           if (w.fill) setWalkFill(true);
-          await speak(w.say, { caption: w.caption });
+          await speak(w.say, { caption: w.caption, kind: "help" });
           await wait(500);
         }
         if (alive) onRevealDone();
@@ -70,7 +70,7 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
             return next;
           });
           sfx.tap();
-          await speak(String(i));
+          await speak(String(i), { kind: "help" });
         }
       } else if (q.picture?.kind === "legend") {
         setCounted([1]);
@@ -84,9 +84,9 @@ export function ChooseEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ch
       if (!alive) return;
       if (hint === 2) {
         if (q.options.some((o) => o.label)) setLabels(true);
-        await speak(q.hint2);
+        await speak(q.hint2, { kind: "help" });
       } else {
-        await speak(q.reveal);
+        await speak(q.reveal, { kind: "help" });
         await wait(700);
         if (alive) onRevealDone();
       }

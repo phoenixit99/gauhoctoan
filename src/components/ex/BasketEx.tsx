@@ -19,19 +19,19 @@ export function BasketEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ba
     (async () => {
       await prompt.current;
       if (hint === 2) {
-        await speak(`Trong giỏ có ${basket.length} quả. Mình cần ${q.n} quả nhé.`);
+        await speak(`Trong giỏ có ${basket.length} quả. Mình cần ${q.n} quả nhé.`, { kind: "help" });
         return;
       }
       setBasket([]);
-      await speak("Gấu làm cùng con nhé!");
+      await speak("Gấu làm cùng con nhé!", { kind: "help" });
       for (let i = 0; i < q.n && alive; i++) {
         setBasket((b) => [...b, i]);
         sfx.pop();
-        await speak(String(i + 1));
+        await speak(String(i + 1), { kind: "help" });
       }
       if (!alive) return;
       setHappy(true);
-      await speak(`Đây là ${q.n} quả táo!`);
+      await speak(`Đây là ${q.n} quả táo!`, { kind: "help" });
       await wait(500);
       if (alive) onRevealDone();
     })();
@@ -46,7 +46,7 @@ export function BasketEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ba
     const next = basket.includes(i) ? basket.filter((x) => x !== i) : [...basket, i];
     setBasket(next);
     sfx.pop();
-    if (next.length > 0) void speak(String(next.length));
+    if (next.length > 0) void speak(String(next.length), { kind: "echo" });
   };
 
   const labels: Record<number, number> = {};

@@ -29,7 +29,7 @@ export function Caption() {
       </div>
       <button
         aria-label="Nghe lại"
-        onClick={() => spoken && speak(spoken, { caption: text })}
+        onClick={() => spoken && speak(spoken, { caption: text, kind: "asked" })}
         className="btn btn-white h-16 w-16 shrink-0 !px-0 text-3xl"
       >
         🔊

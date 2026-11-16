@@ -85,7 +85,7 @@ export default function App() {
         lesson={screen.lesson}
         onExit={() => {
           setScreen({ name: "classroom", week: screen.week, greet: false });
-          if (!useSession.getState().timeUp) void speak(`${KID.name} chọn bài tiếp theo trên bảng nhé!`);
+          if (!useSession.getState().timeUp) void speak(`${KID.name} chọn bài tiếp theo trên bảng nhé!`, { kind: "chat" });
         }}
       />
     );

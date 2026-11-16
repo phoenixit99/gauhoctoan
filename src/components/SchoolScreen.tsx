@@ -29,13 +29,13 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
   const flat = useSettings((s) => s.no3D);
 
   useEffect(() => {
-    if (start === "yard") void speak(`Hôm nay ${KID.name} học môn nào?`);
+    if (start === "yard") void speak(`Hôm nay ${KID.name} học môn nào?`, { kind: "chat" });
   }, [start]);
 
   const onArrived = useCallback(() => {
     setPhase((p) => {
       if (p === "walkIn") {
-        void speak(`${KID.name} đến sân trường rồi! Hôm nay ${KID.name} học môn nào?`, { caption: `${KID.name} đến sân trường rồi! Hôm nay học môn nào? 👇` });
+        void speak(`${KID.name} đến sân trường rồi! Hôm nay ${KID.name} học môn nào?`, { caption: `${KID.name} đến sân trường rồi! Hôm nay học môn nào? 👇`, kind: "chat" });
         return "yard";
       }
       if (p === "walkToClass") {
@@ -58,26 +58,26 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
     sfx.ding();
     if (flat) {
       // No 3D: skip the walk, go straight to the yard.
-      void speak(`Chào ${KID.name}! Hôm nay ${KID.name} học môn nào?`);
+      void speak(`Chào ${KID.name}! Hôm nay ${KID.name} học môn nào?`, { kind: "chat" });
       setPhase("yard");
       return;
     }
-    void speak(`Chào ${KID.name}! Mình cùng vào trường nhé!`);
+    void speak(`Chào ${KID.name}! Mình cùng vào trường nhé!`, { kind: "chat" });
     setPhase("walkIn");
   };
 
   const pickSubject = (s: SubjectDef | null) => {
     sfx.tap();
     setSubject(s);
-    if (s) void speak(`Môn ${s.name}. ${KID.name} chọn học liệu tuần nào?`);
-    else void speak(`Hôm nay ${KID.name} học môn nào?`);
+    if (s) void speak(`Môn ${s.name}. ${KID.name} chọn học liệu tuần nào?`, { kind: "chat" });
+    else void speak(`Hôm nay ${KID.name} học môn nào?`, { kind: "chat" });
   };
 
   const pickWeek = (w: WeekDef) => {
     sfx.tap();
     setWeek(w);
     setLastWeek(w.id);
-    void speak(`Môn ${subject?.name ?? ""}, ${w.title}: ${w.topic}. Mình vào lớp nhé!`);
+    void speak(`Môn ${subject?.name ?? ""}, ${w.title}: ${w.topic}. Mình vào lớp nhé!`, { kind: "chat" });
     if (flat) {
       onEnterClass(w);
       return;
@@ -87,7 +87,7 @@ export function SchoolScreen({ start, onEnterClass }: { start: "gate" | "yard"; 
 
   const onPlace = (p: Place) => {
     sfx.tap();
-    void speak(p.say);
+    void speak(p.say, { kind: "chat" });
   };
 
   const walking = phase === "walkIn" || phase === "walkToClass";

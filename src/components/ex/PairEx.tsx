@@ -64,12 +64,12 @@ export function PairEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Pair
     (async () => {
       await prompt.current;
       if (hint === 2 && q.hint2) {
-        await speak(q.hint2);
+        await speak(q.hint2, { kind: "help" });
         return;
       }
       if (hint === 2) {
         const left = q.left.map((c) => c.say).join(", ");
-        await speak(q.left[0].emoji ? `Gấu nói tên các hình: ${left}.` : `Các phần đầu là: ${left}.`);
+        await speak(q.left[0].emoji ? `Gấu nói tên các hình: ${left}.` : `Các phần đầu là: ${left}.`, { kind: "help" });
         return;
       }
       setPairs({});
@@ -96,13 +96,13 @@ export function PairEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Pair
     if (locked || hint === 3) return;
     sfx.tap();
     setSel(li);
-    if (q.left[li].emoji) void speak(q.left[li].say); // naming the picture is help, not the answer
+    if (q.left[li].emoji) void speak(q.left[li].say, { kind: "echo" }); // naming the picture is help, not the answer
   };
 
   const tapRight = (ri: number) => {
     if (locked || hint === 3) return;
     if (sel === null) {
-      void speak(q.left[0].emoji ? "Con chạm vào một hình trước nhé!" : "Con chạm vào một phần đầu trước nhé!");
+      void speak(q.left[0].emoji ? "Con chạm vào một hình trước nhé!" : "Con chạm vào một phần đầu trước nhé!", { kind: "help" });
       return;
     }
     if (q.answer[sel] === ri) {

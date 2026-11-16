@@ -18,18 +18,18 @@ export function ColorEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Col
     (async () => {
       await prompt.current;
       if (hint === 2) {
-        await speak(`Con đã tô ${on.length} ${q.name}. Mình cần tô ${q.n} ${q.name} nhé.`);
+        await speak(`Con đã tô ${on.length} ${q.name}. Mình cần tô ${q.n} ${q.name} nhé.`, { kind: "help" });
         return;
       }
       setOn([]);
-      await speak("Gấu tô cùng con nhé!");
+      await speak("Gấu tô cùng con nhé!", { kind: "help" });
       for (let i = 0; i < q.n && alive; i++) {
         setOn((o) => [...o, i]);
         sfx.pop();
-        await speak(String(i + 1));
+        await speak(String(i + 1), { kind: "help" });
       }
       if (!alive) return;
-      await speak(`Đã tô ${q.n} ${q.name}.`);
+      await speak(`Đã tô ${q.n} ${q.name}.`, { kind: "help" });
       await wait(500);
       if (alive) onRevealDone();
     })();
@@ -44,7 +44,7 @@ export function ColorEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Col
     const next = on.includes(i) ? on.filter((x) => x !== i) : [...on, i];
     setOn(next);
     sfx.pop();
-    if (next.length > 0) void speak(String(next.length));
+    if (next.length > 0) void speak(String(next.length), { kind: "echo" });
   };
 
   return (

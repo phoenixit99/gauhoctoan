@@ -6,10 +6,20 @@ import { persist } from "zustand/middleware";
 
 export type Theme = "mix" | "animals" | "fruits" | "vehicles";
 
+/**
+ * How much the bear talks (see `Talk` kinds in speech.ts):
+ *  - full: everything, including greetings, navigation and rewards
+ *  - less: no small talk (greetings, "chọn bài tiếp theo", rewards); lessons keep their voice
+ *  - min:  only the question and the help (steps, hints); praise and tap echoes are silent
+ *  - off:  no automatic voice, captions only; the child can still tap 🔊 to hear a line
+ */
+export type TalkLevel = "full" | "less" | "min" | "off";
+
 export type Settings = {
   sfxVolume: number; // 0 = off … 1 = full (sound effects only, not the bear's voice)
   voiceVolume: number; // 0.2 … 1
   voiceRate: number; // 0.6 (slow) … 1
+  talk: TalkLevel; // how much the bear talks
   reduceMotion: boolean; // no bouncing, spinning or shaking
   no3D: boolean; // flat 2D screens instead of the 3D school and orchard
   softColors: boolean; // calmer, less saturated colours
@@ -24,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sfxVolume: 0.6,
   voiceVolume: 1,
   voiceRate: 0.92,
+  talk: "less",
   reduceMotion: false,
   no3D: false,
   softColors: false,

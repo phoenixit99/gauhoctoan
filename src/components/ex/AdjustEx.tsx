@@ -70,7 +70,7 @@ export function AdjustEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ad
             : q.goal.kind === "equal"
               ? `Mình cần hai hàng bằng nhau.`
               : `Hàng trên cần nhiều hơn hàng dưới.`;
-        await speak(`Hàng trên có ${c[0]} ${q.rows[0].name}, hàng dưới có ${c[1]} ${q.rows[1].name}. ${need}`);
+        await speak(`Hàng trên có ${c[0]} ${q.rows[0].name}, hàng dưới có ${c[1]} ${q.rows[1].name}. ${need}`, { kind: "help" });
         return;
       }
       const t = target();
@@ -80,7 +80,7 @@ export function AdjustEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ad
           if (!alive) return;
           const w: WalkStep = q.walk[si];
           setMethodStep(w.step ?? si);
-          await speak(w.say);
+          await speak(w.say, { kind: "help" });
           if (w.row !== undefined) {
             const ri = w.row;
             while (alive && countOf(q.rows[ri].n, rowsRef.current[ri]) !== t[ri]) {
@@ -88,7 +88,7 @@ export function AdjustEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ad
               sfx.pop();
               await wait(150);
               if (!alive) return;
-              await speak(String(countOf(q.rows[ri].n, rowsRef.current[ri])));
+              await speak(String(countOf(q.rows[ri].n, rowsRef.current[ri])), { kind: "help" });
             }
           }
           await wait(500);
@@ -96,7 +96,7 @@ export function AdjustEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ad
         if (alive) onRevealDone();
         return;
       }
-      await speak("Gấu làm cùng con nhé!");
+      await speak("Gấu làm cùng con nhé!", { kind: "help" });
       for (const ri of [0, 1] as const) {
         while (alive && countOf(q.rows[ri].n, rowsRef.current[ri]) !== t[ri]) {
           stepToward(ri, t[ri]);
@@ -106,7 +106,7 @@ export function AdjustEx({ q, hint, locked, onAnswer, onRevealDone }: ExProps<Ad
       }
       if (!alive) return;
       const s = q.goal.kind === "counts" ? ` ${t[0]} ${q.goal.sign === ">" ? "lớn hơn" : q.goal.sign === "<" ? "bé hơn" : "bằng"} ${t[1]}.` : "";
-      await speak(`Bây giờ có ${t[0]} ${q.rows[0].name} và ${t[1]} ${q.rows[1].name}.${s}`);
+      await speak(`Bây giờ có ${t[0]} ${q.rows[0].name} và ${t[1]} ${q.rows[1].name}.${s}`, { kind: "help" });
       await wait(600);
       if (alive) onRevealDone();
     })();
